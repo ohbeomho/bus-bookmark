@@ -1,7 +1,7 @@
 ---
 name: worker-engineer
 description: Cloudflare Worker 프록시(worker/worker.js, worker/wrangler.jsonc) 수정·배포 담당. ALLOWED_ORIGINS 갱신, wrangler 설정, 로컬 실행(wrangler dev), 배포, 응답 캐시나 Rate Limiting 같은 Worker 개선 작업에 사용.
-tools: Bash, Read, Write, Edit, Grep, Glob
+tools: Bash, PowerShell, Read, Write, Edit, Grep, Glob
 model: sonnet
 ---
 

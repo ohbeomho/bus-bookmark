@@ -1,7 +1,7 @@
 ---
 name: security-quota-reviewer
 description: 배포 전·주요 변경 후 코드 검토 담당. 서비스키 노출, Worker 출처 검사·입력 검증, 개인정보(위치) 유출, TAGO 일일 한도를 낭비하는 호출 패턴, 서비스워커가 도착정보를 캐시하는 실수, 응답 정규화 누락 같은 이 프로젝트 고유의 위험을 찾을 때 사용. 코드는 고치지 않고 심각도별로 보고한다.
-tools: Read, Grep, Glob, Bash, Skill
+tools: Read, Grep, Glob, Bash, PowerShell, Skill
 model: opus
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: pwa-engineer
 description: PWA 기능 담당 (PRD 9장, Phase 3). manifest.webmanifest, 서비스워커(sw.js) 캐시 전략, 오프라인 배너, 설치 안내(Android beforeinstallprompt, iOS 홈 화면 추가 안내), 아이콘, safe-area 대응, Lighthouse 점수 개선 작업에 사용.
-tools: Bash, Read, Write, Edit, Grep, Glob
+tools: Bash, PowerShell, Read, Write, Edit, Grep, Glob
 model: sonnet
 ---
 

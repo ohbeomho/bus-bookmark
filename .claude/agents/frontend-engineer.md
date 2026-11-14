@@ -1,7 +1,7 @@
 ---
 name: frontend-engineer
 description: PWA 프론트엔드 핵심 구현 담당 (PRD Phase 2 MVP). 즐겨찾기 홈(도착정보 카드·자동 새로고침·카운트다운), Leaflet 지도와 정류장 마커·바텀시트, 타일 로딩(tiles.js+IndexedDB), 검색, localStorage 즐겨찾기 저장(store.js), Worker 호출(api.js) 등 index.html·js/·css/ 작업에 사용.
-tools: Bash, Read, Write, Edit, Grep, Glob
+tools: Bash, PowerShell, Read, Write, Edit, Grep, Glob
 model: opus
 ---
 

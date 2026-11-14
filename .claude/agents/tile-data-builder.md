@@ -1,7 +1,7 @@
 ---
 name: tile-data-builder
 description: PRD Phase 1 정류장 데이터 전처리 담당. 국토교통부 전국 버스정류장 CSV를 정리해 data/tiles/*.json 격자 타일, data/tiles/index.json, data/cities.json을 만드는 Node.js 스크립트(scripts/build-tiles.js)를 작성·실행·점검할 때 사용.
-tools: Bash, Read, Write, Edit, Grep, Glob
+tools: Bash, PowerShell, Read, Write, Edit, Grep, Glob
 model: sonnet
 ---
 

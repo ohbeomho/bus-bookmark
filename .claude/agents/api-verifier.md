@@ -1,7 +1,7 @@
 ---
 name: api-verifier
 description: PRD Phase 0 검증 담당. Worker /arrivals가 실제 TAGO 도착정보를 돌려주는지, 도시코드 목록으로 지역 지원 여부, 정류장 CSV의 정류장번호·도시코드가 API nodeId·cityCode와 그대로 연결되는지 확인할 때 사용. TAGO 응답 구조가 궁금하거나 API 오류(resultCode, 403/400/502)를 진단할 때도 사용.
-tools: Bash, Read, Grep, Glob, Write
+tools: Bash, PowerShell, Read, Grep, Glob, Write
 model: sonnet
 ---
 
