@@ -4,7 +4,7 @@
 
 // 내 사이트 주소만 허용 (배포 후 실제 주소로 바꾸세요. 로컬 개발용 주소도 함께)
 const ALLOWED_ORIGINS = [
-  "https://내아이디.github.io", // TODO: 배포 후 실제 주소로 바꾼 뒤 cloudflare에서 수정
+  "https://myid.github.io",
   "http://localhost:5500",
 ];
 
