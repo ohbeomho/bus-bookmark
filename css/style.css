@@ -10,7 +10,13 @@
   --soon: #b3261e;
   --star: #b26a00;
   --danger: #b3261e;
-  --dev: #6b3fa0;
+  /* 노선 유형별 색 (전광판 관례). 글자는 흰 배경 기준 대비 4.5:1 이상, 배경은 옅은 같은 계열 */
+  --rt-trunk-fg: #0b4fa8;   --rt-trunk-bg: #dbe9fb;   /* 간선·일반 */
+  --rt-branch-fg: #16653a;  --rt-branch-bg: #d8f0e0;  /* 지선 */
+  --rt-express-fg: #b3261e; --rt-express-bg: #fbe0de; /* 급행·광역 */
+  --rt-village-fg: #8a4b00; --rt-village-bg: #fbe7cc; /* 마을·순환 */
+  --rt-seat-fg: #0a5b67;    --rt-seat-bg: #d5eef2;    /* 좌석 */
+  --rt-outer-fg: #58399f;   --rt-outer-bg: #e6e0fa;   /* 외곽·농어촌 */
   --radius: 14px;
   --tap: 44px;
   color-scheme: light dark;
@@ -27,7 +33,13 @@
     --soon: #ff8a80;
     --star: #ffc04d;
     --danger: #ff8a80;
-    --dev: #c9a7f5;
+    /* 어두운 배경에서는 글자를 밝게, 배경은 어두운 같은 계열 (본문 배경 대비 은은하게) */
+    --rt-trunk-fg: #a7c9ff;   --rt-trunk-bg: #1b3356;
+    --rt-branch-fg: #8fdba7;  --rt-branch-bg: #163a27;
+    --rt-express-fg: #ff9e95; --rt-express-bg: #4a211e;
+    --rt-village-fg: #f8c178; --rt-village-bg: #432f12;
+    --rt-seat-fg: #8ad7e2;    --rt-seat-bg: #103a41;
+    --rt-outer-fg: #c4b2ff;   --rt-outer-bg: #2f2656;
   }
 }
 
@@ -132,7 +144,6 @@ main {
 }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .btn.danger { color: var(--danger); border-color: var(--danger); }
-.btn.dev { color: var(--dev); border: 2px dashed var(--dev); }
 .btn.small { min-height: var(--tap); padding: .3rem .8rem; font-size: .9rem; }
 .btn:disabled { opacity: .45; cursor: default; }
 
@@ -261,6 +272,25 @@ button.pause-note { cursor: pointer; }
 }
 .route:first-child { border-top: 0; }
 .route-no { font-size: 1.75rem; font-weight: 800; min-width: 3ch; letter-spacing: -.02em; overflow-wrap: anywhere; }
+/* 노선 유형별 색 칩 (js/ui/home.js routeTypeClass와 값이 같아야 한다). 모르는 유형은 attribute가 없어 기본 글자색 */
+.route-no[data-rtype] {
+  align-self: flex-start; /* .route-id가 세로 flex라 칩이 글자 너비에만 붙게 */
+  padding: 0 .3rem;
+  border-radius: 8px;
+  text-align: center;
+  color: var(--rt-fg);
+  background: var(--rt-bg);
+}
+.route-no[data-rtype="trunk"]   { --rt-fg: var(--rt-trunk-fg);   --rt-bg: var(--rt-trunk-bg); }
+.route-no[data-rtype="branch"]  { --rt-fg: var(--rt-branch-fg);  --rt-bg: var(--rt-branch-bg); }
+.route-no[data-rtype="express"] { --rt-fg: var(--rt-express-fg); --rt-bg: var(--rt-express-bg); }
+.route-no[data-rtype="village"] { --rt-fg: var(--rt-village-fg); --rt-bg: var(--rt-village-bg); }
+.route-no[data-rtype="seat"]    { --rt-fg: var(--rt-seat-fg);    --rt-bg: var(--rt-seat-bg); }
+.route-no[data-rtype="outer"]   { --rt-fg: var(--rt-outer-fg);   --rt-bg: var(--rt-outer-bg); }
+/* 고대비 모드에서는 배경이 무시되므로 테두리로 칩 모양을 남긴다 */
+@media (forced-colors: active) {
+  .route-no[data-rtype] { border: 1px solid currentColor; }
+}
 .eta { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .eta .eta-sub { font-size: 1rem; font-weight: 600; color: var(--muted); }
 .route-id { display: inline-flex; flex-direction: column; line-height: 1.15; min-width: 4ch; }

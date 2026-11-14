@@ -2,7 +2,6 @@
 import { initHome, setHomeActive, onOnline, onOffline, primeArrivals, peekArrivals } from "./ui/home.js";
 import { initSettings } from "./ui/settings.js";
 import { initInstall, registerServiceWorker } from "./ui/install.js";
-import { devSeedButton } from "./dev-seed.js"; // DEV-ONLY: 배포 전 삭제
 
 const TABS = ["home", "map", "settings"];
 const TITLES = { home: "즐겨찾기", map: "지도", settings: "설정" };
@@ -50,9 +49,7 @@ function updateOnline() {
   document.getElementById("offline-banner").hidden = navigator.onLine !== false;
 }
 
-initHome(document.getElementById("panel-home"), {
-  emptyExtra: devSeedButton, // DEV-ONLY: 배포 전 삭제
-});
+initHome(document.getElementById("panel-home"));
 initSettings(document.getElementById("panel-settings"));
 initInstall();
 registerServiceWorker();

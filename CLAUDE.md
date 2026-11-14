@@ -32,7 +32,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 추가 규칙 (PRD 4.5): 수동 새로고침 10초 쿨다운, 입력 없이 10분이면 자동 새로고침 일시정지, 연속 실패 시 30→60→120→300초 백오프, 한도 초과(503 `quota`) 시 10분 정지, 정류장 최대 20곳, 동시 요청 최대 4건. 새 호출 경로를 만들면 `js/api.js`의 `fetchArrivals`를 거쳐 이 규칙을 그대로 따르게 할 것.
 - 타임아웃 8초, 일시적 실패(5xx·네트워크·타임아웃)만 1회 재시도(4xx·키 문제·한도 초과는 재시도 금지), 실패하면 마지막 성공 데이터를 흐리게 유지.
 - 서비스워커에서 도착 정보(`*.workers.dev/arrivals`)는 **절대 캐시하지 않는다** — `sw.js` fetch 핸들러에서 `respondWith`를 부르지 않는다 (이 규칙을 깨는 변경 금지).
-- **서비스워커(`sw.js`) 버전 관리**: 앱 파일(`index.html`, `css/`, `js/`, `icons/`, `manifest.webmanifest`)을 바꾸면 `sw.js`의 `VERSION`을 올린다 — 안 올리면 설치한 사용자는 옛 파일을 계속 본다. `js/`에 모듈을 추가·삭제하면 `sw.js`의 `SHELL` 목록도 고친다 (없는 파일이 있으면 install이 실패해 옛 버전이 유지됨). 배포 전 `js/dev-seed.js`를 지울 때는 `app.js`의 import와 `sw.js`의 SHELL 항목도 함께 지운다.
+- **서비스워커(`sw.js`) 버전 관리**: 앱 파일(`index.html`, `css/`, `js/`, `icons/`, `manifest.webmanifest`)을 바꾸면 `sw.js`의 `VERSION`을 올린다 — 안 올리면 설치한 사용자는 옛 파일을 계속 본다. `js/`에 모듈을 추가·삭제하면 `sw.js`의 `SHELL` 목록도 고친다 (없는 파일이 있으면 install이 실패해 옛 버전이 유지됨).
 - 정류장 타일(`data/tiles/*`)은 `js/tiles.js`가 IndexedDB에 `index.json` 버전과 함께 저장하므로 SW가 캐시하지 않는다. 앱 셸은 프리캐시, Leaflet CDN·OSM 지도 이미지(최대 200장)는 런타임 캐시.
 - CSP `connect-src`는 SW의 fetch에도 적용되므로, SW가 새 출처를 가져오려면 `vercel.json`에도 그 출처를 넣는다.
 

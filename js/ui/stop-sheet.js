@@ -5,7 +5,7 @@ import * as store from "../store.js";
 import { fetchArrivals, lastRequestAt } from "../api.js";
 import { MIN_GAP_MS, MIN_AUTO_REFRESH_SEC, MAX_ROUTES } from "../config.js";
 import { h, toast, fmtClock } from "./dom.js";
-import { routeLabels, renderEta, groupByRoute, nextEta } from "./home.js";
+import { routeLabels, renderEta, groupByRoute, nextEta, routeNoChip } from "./home.js";
 
 const CACHE_MAX = 30;
 const cache = new Map(); // key → 마지막 성공 결과 {items, nodeName, fetchedAt}
@@ -219,7 +219,7 @@ function routeRow(route, arr, label, fav) {
     h(
       "span",
       { class: "route-id" },
-      h("span", { class: "route-no" }, no, h("span", { class: "sr-only" }, "번")),
+      routeNoChip(route),
       label && h("span", { class: "route-tp" }, label)
     ),
     eta,

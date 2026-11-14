@@ -29,7 +29,7 @@ const INPUT_EVENTS = ["pointerdown", "keydown", "wheel", "touchstart"];
  */
 const state = new Map();
 const openOthers = new Set(); // "다른 노선" 펼친 정류장
-let listEl, opts;
+let listEl;
 let active = false; // 홈 탭이 보이고 페이지가 화면에 있음
 let autoTimer = null;
 let tickTimer = null;
@@ -60,8 +60,7 @@ function dueAt(st, baseSec) {
   return st.lastAttemptAt + Math.max(baseSec, backoff) * 1000;
 }
 
-export function initHome(panel, options = {}) {
-  opts = options;
+export function initHome(panel) {
   listEl = panel.querySelector("#stop-list");
   panel.querySelector("#refresh-btn").addEventListener("click", () => refreshAll(true));
   panel.querySelector("#idle-note").addEventListener("click", onUserInput);
@@ -342,7 +341,7 @@ function emptyState() {
     { class: "empty" },
     h("p", { class: "empty-title" }, "아직 즐겨찾기한 정류장이 없어요"),
     h("p", null, "지도에서 자주 타는 정류장을 찾아 노선을 즐겨찾기해 두면, 여기에서 도착 정보를 바로 볼 수 있어요."),
-    h("div", { class: "empty-actions" }, h("a", { class: "btn primary", href: "#map" }, "지도에서 정류장 찾기"), opts.emptyExtra?.())
+    h("div", { class: "empty-actions" }, h("a", { class: "btn primary", href: "#map" }, "지도에서 정류장 찾기"))
   );
 }
 
@@ -467,7 +466,7 @@ function routeRow(key, route, arr, st, fav, label) {
     h(
       "span",
       { class: "route-id" },
-      h("span", { class: "route-no" }, no, h("span", { class: "sr-only" }, "번")),
+      routeNoChip(route),
       label && h("span", { class: "route-tp" }, label)
     ),
     eta,
@@ -576,6 +575,32 @@ export function routeLabels(routes) {
     }
   }
   return labels;
+}
+
+/**
+ * 노선 유형(routeType) → 색상 카테고리. CSS의 `.route-no[data-rtype=...]`과 짝을 이룬다.
+ * 지역마다 문구가 달라(간선버스/지선버스/급행버스/마을버스/외곽버스, 좌석·광역 등) 부분 일치로 본다.
+ * 모르는 유형·빈 값은 ""(기본 글자색). 색은 장식일 뿐이고 번호·유형 라벨 글자가 정보를 전한다.
+ */
+const ROUTE_TYPE_RULES = [
+  [/급행|직행|광역|리무진|공항/, "express"], // 빨강: "좌석급행"도 여기로 (좌석보다 먼저 본다)
+  [/좌석/, "seat"], // 청록
+  [/지선/, "branch"], // 초록 (간선보다 먼저: "지선"에 "선"만 겹침)
+  [/간선|일반|시내/, "trunk"], // 파랑
+  [/마을|순환/, "village"], // 주황
+  [/외곽|농어촌|읍면|시외/, "outer"], // 보라
+];
+export function routeTypeClass(routeType) {
+  const t = String(routeType || "").replace(/\s+/g, "");
+  if (!t) return "";
+  for (const [re, kind] of ROUTE_TYPE_RULES) if (re.test(t)) return kind;
+  return "";
+}
+
+/** 노선 번호 칩 (유형별 색). 홈 카드와 지도 바텀시트가 같이 쓴다 */
+export function routeNoChip(route) {
+  const no = route.routeNo || "?";
+  return h("span", { class: "route-no", "data-rtype": routeTypeClass(route.routeType) || null }, no, h("span", { class: "sr-only" }, "번"));
 }
 
 const ERROR_TEXT = {
