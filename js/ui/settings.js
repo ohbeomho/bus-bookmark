@@ -1,0 +1,13 @@
+// 설정 화면: 자동 새로고침 간격 (F-D3). 출처·개인정보 안내(F-D5)는 index.html 정적 문구.
+import { getSettings, setSettings } from "../store.js";
+
+export function initSettings(panel) {
+  const radios = panel.querySelectorAll('input[name="refreshSec"]');
+  const sync = () => {
+    const cur = String(getSettings().refreshSec);
+    radios.forEach((r) => (r.checked = r.value === cur));
+  };
+  radios.forEach((r) => r.addEventListener("change", () => r.checked && setSettings({ refreshSec: Number(r.value) })));
+  sync();
+  window.addEventListener("storage", sync);
+}

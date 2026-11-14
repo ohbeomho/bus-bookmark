@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="자주 타는 정류장과 노선의 버스 도착 정보를 바로 보는 앱">
+  <title>버스 즐겨찾기</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="버스">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">본문으로 건너뛰기</a>
+
+  <header class="appbar">
+    <h1 id="app-title">즐겨찾기</h1>
+  </header>
+
+  <div id="offline-banner" class="banner" role="status" hidden>오프라인 — 도착 정보를 불러올 수 없어요</div>
+
+  <div id="update-banner" class="banner info" role="status" hidden>
+    <span>새 버전이 있어요</span>
+    <button class="btn small" type="button">새로고침</button>
+  </div>
+  <div id="ios-tip" class="banner info" role="status" hidden></div>
+
+  <main id="main" tabindex="-1">
+    <!-- 즐겨찾기 홈 (PRD 5.1) -->
+    <section id="panel-home" class="panel" aria-labelledby="app-title">
+      <div id="ptr" class="ptr" aria-hidden="true">당겨서 새로고침</div>
+      <div id="stop-list" class="stop-list"></div>
+      <div class="dock">
+        <div class="dock-notes" role="status" aria-live="polite">
+          <button id="idle-note" class="pause-note" type="button" hidden>
+            <span aria-hidden="true">⏸</span> 자동 새로고침 일시정지됨 · 탭하여 재개
+          </button>
+          <p id="quota-note" class="pause-note" hidden></p>
+        </div>
+        <button id="refresh-btn" class="fab" type="button" hidden>
+          <span aria-hidden="true">↻</span> <span id="refresh-label">새로고침</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 지도 (PRD 5.2·5.3·5.4). Leaflet은 이 탭을 처음 열 때 js/map.js가 불러온다 -->
+    <section id="panel-map" class="panel map-panel" aria-labelledby="app-title" hidden>
+      <div id="map-view" class="map-view" aria-label="정류장 지도. 정류장은 '목록' 버튼이나 검색으로도 고를 수 있어요"></div>
+      <div class="map-top">
+        <form id="map-search" class="searchbar" role="search">
+          <label class="sr-only" for="search-input">정류장 검색</label>
+          <input id="search-input" type="search" placeholder="정류장 이름 또는 ARS 번호" autocomplete="off" enterkeyhint="search">
+        </form>
+        <div id="search-results" class="search-results" hidden></div>
+        <div id="map-status" class="map-status" role="status" aria-live="polite" hidden></div>
+      </div>
+      <div class="map-actions">
+        <button id="btn-city" class="btn map-btn" type="button">도시 선택</button>
+        <button id="btn-list" class="btn map-btn" type="button">목록</button>
+        <button id="btn-locate" class="btn map-btn" type="button"><span aria-hidden="true">◎</span> 내 위치</button>
+      </div>
+    </section>
+
+    <!-- 설정 (PRD 5.5) -->
+    <section id="panel-settings" class="panel" hidden>
+      <fieldset class="group">
+        <legend>자동 새로고침</legend>
+        <label class="choice"><input type="radio" name="refreshSec" value="30"> 30초</label>
+        <label class="choice"><input type="radio" name="refreshSec" value="60"> 60초</label>
+        <label class="choice"><input type="radio" name="refreshSec" value="0"> 끄기</label>
+        <p class="help">앱 화면이 보일 때만 새로고침해요. 모든 사용자가 하루 호출 한도를 함께 쓰므로 간격을 길게 할수록 좋아요.</p>
+      </fieldset>
+
+      <section id="install-group" class="group" aria-labelledby="h-install" hidden>
+        <h2 id="h-install">앱 설치</h2>
+        <p id="install-help">홈 화면에 설치하면 앱처럼 바로 열려요.</p>
+        <button id="install-btn" class="btn primary" type="button" hidden>앱으로 설치</button>
+        <p id="install-ios" hidden>공유 버튼(□↑)을 누르고 '홈 화면에 추가'를 선택하면 앱처럼 열려요.</p>
+      </section>
+
+      <section class="group" aria-labelledby="h-privacy">
+        <h2 id="h-privacy">개인정보</h2>
+        <p>위치 정보는 이 기기 안에서만 쓰며 어디에도 보내거나 저장하지 않아요. 도착 정보를 받을 때는 도시코드와 정류장 ID만 중계 서버로 전달되고, 중계 서버는 아무것도 저장하지 않아요. 즐겨찾기는 이 기기의 브라우저에만 저장돼요.</p>
+      </section>
+
+      <section class="group" aria-labelledby="h-source">
+        <h2 id="h-source">데이터 출처</h2>
+        <ul class="plain">
+          <li>버스 도착 정보: 국토교통부 (TAGO) 버스도착정보, 공공데이터포털</li>
+          <li>정류장 위치: 국토교통부 전국 버스정류장 위치정보 (수집일: <span id="tiles-date">확인 중</span>)</li>
+          <li>지도: © OpenStreetMap contributors, Leaflet</li>
+        </ul>
+      </section>
+    </section>
+  </main>
+
+  <nav class="tabbar" aria-label="주 메뉴">
+    <a href="#home"><span class="tab-ico" aria-hidden="true">★</span><span>즐겨찾기</span></a>
+    <a href="#map"><span class="tab-ico" aria-hidden="true">◎</span><span>지도</span></a>
+    <a href="#settings"><span class="tab-ico" aria-hidden="true">⚙</span><span>설정</span></a>
+  </nav>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <dialog id="stop-menu" class="sheet" aria-labelledby="stop-menu-title">
+    <form method="dialog">
+      <h2 id="stop-menu-title">정류장</h2>
+      <label class="field">별칭
+        <input name="alias" maxlength="30" placeholder="예: 집 앞" autocomplete="off">
+      </label>
+      <button class="btn primary" value="alias">별칭 저장</button>
+      <div class="row">
+        <button class="btn" value="up">위로 이동</button>
+        <button class="btn" value="down">아래로 이동</button>
+      </div>
+      <button class="btn danger" value="delete">즐겨찾기에서 삭제</button>
+      <button class="btn" value="cancel">닫기</button>
+    </form>
+  </dialog>
+
+  <!-- 지도 정류장 바텀시트 (F-M4) -->
+  <dialog id="stop-sheet" class="sheet" aria-labelledby="stop-sheet-title">
+    <div class="sheet-body"></div>
+  </dialog>
+
+  <!-- 도시 선택 (F-L1) -->
+  <dialog id="city-sheet" class="sheet" aria-labelledby="city-sheet-title">
+    <div class="sheet-body"></div>
+  </dialog>
+</body>
+</html>

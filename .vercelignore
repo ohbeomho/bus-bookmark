@@ -1,0 +1,20 @@
+# 사이트에 올리지 않는 파일 (정적 배포 대상: index.html, manifest, favicon, css/, js/, icons/, data/tiles/, data/cities.json)
+
+# 원본 데이터·빌드 스크립트
+data/raw/
+scripts/
+
+# Cloudflare Worker (별도 배포)
+worker/
+.wrangler/
+
+# 문서·개발 설정
+docs/
+*.md
+.claude/
+.playwright-mcp/
+.vscode/
+
+# 비밀값
+.env
+.env.*
