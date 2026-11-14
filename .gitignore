@@ -156,3 +156,9 @@ worker/.dev.vars
 # 원본 정류장 CSV (전처리 입력, 배포 대상 아님)
 scripts/raw/
 data/raw/
+
+# Playwright MCP 스냅샷·로그 (브라우저 테스트 부산물)
+.playwright-mcp/
+
+# Vercel CLI 프로젝트 연결 정보
+.vercel/
