@@ -128,6 +128,43 @@ function fmtCoord(e6) {
   return Number((e6 / 1e6).toFixed(6)); // 정수 마이크로도에서 되돌려 표기 오차를 없앤다
 }
 
+// 도시 bbox/center 계산 (정수 마이크로도 입력).
+//  center: 전체 정류장의 위도·경도 각각의 중앙값 (이상치에 강함).
+//  bbox: 다른 시군 정류장이 이 도시코드로 잘못 등록된 이상치를 빼고 계산한다.
+//    위도·경도 각각 Q1 - k*IQR ~ Q3 + k*IQR (k=1.5, Tukey의 표준 이상치 기준) 밖이면 이상치.
+//    IQR이 아주 작은 도시를 위해 울타리 여유는 최소 0.05도(약 5km)로 한다.
+//    백분위 1~99% 자르기와 달리 정상 정류장을 일정 비율로 깎지 않아 큰 도시의 가장자리가 유지된다.
+//    정류장 8개 미만이면 사분위가 무의미하므로 이상치 제거 없이 전부 쓴다.
+//  타일/정류장 목록에서는 아무것도 제외하지 않는다.
+const FENCE_K = 1.5;
+const FENCE_MIN_E6 = 50000;
+const FENCE_MIN_POINTS = 8;
+function quantile(sorted, q) {
+  const pos = (sorted.length - 1) * q, lo = Math.floor(pos), hi = Math.ceil(pos);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+}
+function robustBox(pts) {
+  const lats = pts.map((p) => p[0]).sort((a, b) => a - b);
+  const lngs = pts.map((p) => p[1]).sort((a, b) => a - b);
+  const center = [Math.round(quantile(lats, 0.5)), Math.round(quantile(lngs, 0.5))];
+  let use = pts;
+  if (pts.length >= FENCE_MIN_POINTS) {
+    const fence = (s) => {
+      const q1 = quantile(s, 0.25), q3 = quantile(s, 0.75);
+      const m = Math.max(FENCE_K * (q3 - q1), FENCE_MIN_E6);
+      return [q1 - m, q3 + m];
+    };
+    const [la0, la1] = fence(lats), [ln0, ln1] = fence(lngs);
+    use = pts.filter((p) => p[0] >= la0 && p[0] <= la1 && p[1] >= ln0 && p[1] <= ln1);
+  }
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  for (const [a, b] of use) {
+    if (a < minLat) minLat = a; if (a > maxLat) maxLat = a;
+    if (b < minLng) minLng = b; if (b > maxLng) maxLng = b;
+  }
+  return { bbox: [minLat, minLng, maxLat, maxLng], center, excluded: pts.length - use.length };
+}
+
 const byCodeUnit = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
 // ---------- 메인 ----------
@@ -165,7 +202,7 @@ async function main() {
   const stops = []; // {id,name,latE6,lngE6,ars,city}
   const cityNames = new Map(); // CSV 도시명 (참고용 집계는 하지 않음)
   let latestDate = '';
-  const cityBox = new Map(); // code -> {minLat,maxLat,minLng,maxLng,count}
+  const cityPts = new Map(); // code -> [[latE6,lngE6], ...] (bbox/center 계산용)
 
   for (const r of rows) {
     if (r.length === 1 && r[0] === '') continue; // 빈 줄
@@ -193,15 +230,8 @@ async function main() {
     const latE6 = Math.round(lat * 1e6), lngE6 = Math.round(lng * 1e6);
     stops.push({ id, name: r[1].replace(/\uFFFD/g, '').trim(), latE6, lngE6, ars, city });
 
-    const b = cityBox.get(city);
-    if (!b) cityBox.set(city, { minLat: latE6, maxLat: latE6, minLng: lngE6, maxLng: lngE6, count: 1 });
-    else {
-      if (latE6 < b.minLat) b.minLat = latE6;
-      if (latE6 > b.maxLat) b.maxLat = latE6;
-      if (lngE6 < b.minLng) b.minLng = lngE6;
-      if (lngE6 > b.maxLng) b.maxLng = lngE6;
-      b.count++;
-    }
+    if (!cityPts.has(city)) cityPts.set(city, []);
+    cityPts.get(city).push([latE6, lngE6]);
   }
 
   // 4) 타일 분할 (파일명 규칙은 상단 주석 참고)
@@ -251,16 +281,21 @@ async function main() {
 
   // 6) cities.json (지원 도시 + bbox: [south, west, north, east])
   const cities = [...supported.entries()].sort((a, b) => a[0] - b[0]).map(([code, name]) => {
-    const b = cityBox.get(code);
+    const pts = cityPts.get(code);
+    if (!pts) return { code, name, stopCount: 0, bbox: null, center: null };
+    const r = robustBox(pts);
     return {
       code, name,
-      stopCount: b ? b.count : 0,
-      bbox: b ? [fmtCoord(b.minLat), fmtCoord(b.minLng), fmtCoord(b.maxLat), fmtCoord(b.maxLng)] : null,
+      stopCount: pts.length,
+      bbox: r.bbox.map(fmtCoord),
+      center: r.center.map(fmtCoord),
     };
   });
   fs.writeFileSync(CITIES_PATH, JSON.stringify({
-    source: 'TAGO ArvlInfoInqireService/getCtyCodeList (이름·코드), 정류장 좌표 (bbox)',
+    source: 'TAGO ArvlInfoInqireService/getCtyCodeList (이름·코드), 정류장 좌표 (bbox, center)',
     bboxOrder: ['south', 'west', 'north', 'east'],
+    centerOrder: ['lat', 'lng'],
+    bboxMethod: 'Tukey fence (k=1.5, 최소 여유 0.05도)를 위도·경도 각각 적용해 벗어난 정류장을 제외한 뒤 남은 정류장의 min/max. 정류장 8개 미만이면 전부 사용. center는 전체 정류장의 위도·경도 중앙값.',
     cities,
   }, null, 1) + '\n');
 
