@@ -162,3 +162,5 @@ data/raw/
 
 # Vercel CLI 프로젝트 연결 정보
 .vercel/
+.vercel
+.env*
