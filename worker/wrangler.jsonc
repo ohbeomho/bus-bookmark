@@ -1,5 +1,23 @@
 {
   "name": "bus-bookmark-worker",
   "main": "worker.js",
-  "compatibility_date": "2026-11-14"
+  "compatibility_date": "2026-11-14",
+  // Logs만 켜고 Traces는 끈다. Traces는 업스트림 fetch URL(쿼리에 serviceKey 포함)을 기록할 수 있으므로 켜지 말 것
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "invocation_logs": true },
+    "traces": { "enabled": false }
+  },
+  "vars": {
+    // 쉼표 구분. 운영 주소는 Vercel 프로덕션 도메인만 (Preview 주소는 허용하지 않음). localhost는 개발용
+    "ALLOWED_ORIGINS": "https://bus-bookmark.vercel.app,http://localhost:5500"
+  },
+  "ratelimits": [
+    {
+      // CF-Connecting-IP당 60초에 60건 (period는 10 또는 60만 가능)
+      "name": "RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 60, "period": 60 }
+    }
+  ]
 }
