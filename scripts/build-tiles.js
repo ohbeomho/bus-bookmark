@@ -14,7 +14,16 @@
  *   정류장번호,정류장명,위도,경도,정보수집일,모바일단축번호,도시코드,도시명,관리도시명
  *   (관리도시명은 부정확하므로 쓰지 않는다. 도시 연결은 도시코드로만 한다.)
  *
- * 정책 A: TAGO 도착정보 API가 지원하지 않는 도시코드의 정류장은 타일에서 제외한다.
+ * 정책 A(=정책 2): TAGO 도착정보 API가 지원하지 않는 도시코드(data/cities.json 기준, 서울 11 포함 23개)의
+ *   정류장은 타일에서 전부 제외한다.
+ *
+ * 정책 1 (중복 정류장, docs/phase0-findings.md "중복 정류장 검증" 참고): 이름이 같고 좌표를 소수 4자리로
+ *   반올림했을 때 같은(= 사실상 같은 위치) 행이 nodeId·cityCode만 다르게 여러 개 있는 경우가 있다
+ *   (예: 대구/경산 BIS가 같은 정류장을 각자 등록). 이런 중복 그룹에서는 "자신의 cityCode의 주류 nodeId
+ *   접두사"와 "자신의 nodeId 접두사"가 일치하는 행만 남기고 나머지는 제외한다. 주류 접두사는 CSV 전체
+ *   (정제는 됐지만 도시 지원 여부로 거르기 전)에서 cityCode별 접두사 최빈값으로 계산한다. 그룹 크기가
+ *   1인(중복이 없는) 행은 접두사 일치 여부와 무관하게 그대로 둔다. 제외된 행은 data/excluded-stops.json에
+ *   이유와 함께 남긴다.
  *
  * ===== 타일 파일명 규칙 (프론트엔드 tiles.js가 동일하게 계산해야 함) =====
  *   격자 크기 0.05도. 파일명은 "격자 인덱스"이며 좌표 문자열이 아니므로 부동소수 오차가 없다.
@@ -43,6 +52,7 @@ const ROOT = path.resolve(__dirname, '..');
 const DEFAULT_CSV = path.join(ROOT, 'data', 'raw', '국토교통부_전국 버스정류장 위치정보.csv');
 const TILES_DIR = path.join(ROOT, 'data', 'tiles');
 const CITIES_PATH = path.join(ROOT, 'data', 'cities.json');
+const EXCLUDED_PATH = path.join(ROOT, 'data', 'excluded-stops.json');
 
 const GRID_DEG = 0.05;
 const GRID_E6 = 50000; // 0.05도 = 50000 마이크로도
@@ -167,6 +177,19 @@ function robustBox(pts) {
 
 const byCodeUnit = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
+// nodeId 접두사: 맨 앞 영문자 연속 구간 (예: "DJB8002453" -> "DJB"). 없으면 "" (숫자만인 ID는 없음, 방어적으로 처리).
+function nodeIdPrefix(id) {
+  const m = /^[A-Za-z]+/.exec(id);
+  return m ? m[0] : '';
+}
+
+// 정류장명+좌표(소수 4자리 반올림) 그룹 키. 중복 정류장 검증(docs/phase0-findings.md)에서 쓴 기준과 같다.
+function dupGroupKey(name, latE6, lngE6) {
+  const lat4 = Math.round(latE6 / 100) / 10000; // 1e6 마이크로도 -> 소수 4자리
+  const lng4 = Math.round(lngE6 / 100) / 10000;
+  return name + '|' + lat4.toFixed(4) + '|' + lng4.toFixed(4);
+}
+
 // ---------- 메인 ----------
 async function main() {
   const args = process.argv.slice(2);
@@ -195,14 +218,12 @@ async function main() {
   }
   console.log('인코딩 확인: EUC-KR 디코딩 정상, 헤더 일치, 데이터 ' + rows.length + '행, 해석 불가 문자 포함 행 ' + badLines + '개(해당 문자는 이름에서 제거)');
 
-  // 3) 정제
+  // 3) 기본 정제 (좌표·nodeId 등). 도시 지원 여부(정책 2)와는 무관하게 CSV 전체를 정리한다 —
+  //    정책 1의 주류 접두사는 "CSV 전체"로 계산해야 하기 때문이다.
   const removed = { 컬럼수오류: 0, 좌표누락: 0, 좌표0: 0, 한국범위밖: 0, nodeId누락: 0, nodeId중복: 0 };
-  const excludedByCity = new Map(); // 미지원 도시코드별 제외 수
   const seen = new Set();
-  const stops = []; // {id,name,latE6,lngE6,ars,city}
-  const cityNames = new Map(); // CSV 도시명 (참고용 집계는 하지 않음)
+  const cleaned = []; // {id,name,latE6,lngE6,ars,city,prefix}
   let latestDate = '';
-  const cityPts = new Map(); // code -> [[latE6,lngE6], ...] (bbox/center 계산용)
 
   for (const r of rows) {
     if (r.length === 1 && r[0] === '') continue; // 빈 줄
@@ -221,17 +242,74 @@ async function main() {
     const date = r[4].trim();
     if (date > latestDate) latestDate = date;
     const city = Number(r[6].trim());
-    if (!supported.has(city)) {
-      excludedByCity.set(city, (excludedByCity.get(city) || 0) + 1);
-      continue;
-    }
     let ars = r[5].trim();
     if (ars === '0') ars = '';
     const latE6 = Math.round(lat * 1e6), lngE6 = Math.round(lng * 1e6);
-    stops.push({ id, name: r[1].replace(/\uFFFD/g, '').trim(), latE6, lngE6, ars, city });
+    const name = r[1].replace(/\uFFFD/g, '').trim();
+    cleaned.push({ id, name, latE6, lngE6, ars, city, prefix: nodeIdPrefix(id) });
+  }
 
-    if (!cityPts.has(city)) cityPts.set(city, []);
-    cityPts.get(city).push([latE6, lngE6]);
+  // 3-1) 정책 1: 도시코드별 nodeId 주류 접두사 (CSV 전체 기준, 최빈값. 동점이면 접두사 문자열 오름차순으로 고정).
+  const cityPrefixCounts = new Map(); // city -> Map(prefix -> count)
+  for (const s of cleaned) {
+    if (!cityPrefixCounts.has(s.city)) cityPrefixCounts.set(s.city, new Map());
+    const m = cityPrefixCounts.get(s.city);
+    m.set(s.prefix, (m.get(s.prefix) || 0) + 1);
+  }
+  const cityMajorityPrefix = new Map();
+  for (const [city, m] of cityPrefixCounts) {
+    let best = null, bestCount = -1;
+    for (const [prefix, count] of [...m.entries()].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))) {
+      if (count > bestCount) { best = prefix; bestCount = count; }
+    }
+    cityMajorityPrefix.set(city, best);
+  }
+
+  // 3-2) 정책 1: 중복 그룹(이름+좌표 소수 4자리 동일, nodeId/cityCode만 다름) 찾기.
+  const dupGroups = new Map(); // key -> [stop, ...]
+  for (const s of cleaned) {
+    const key = dupGroupKey(s.name, s.latE6, s.lngE6);
+    if (!dupGroups.has(key)) dupGroups.set(key, []);
+    dupGroups.get(key).push(s);
+  }
+  const excludedStops = []; // {id,name,lat,lng,city,reason,detail?}
+  const dupExcludeIds = new Set();
+  let dupGroupCount = 0, dupRowCount = 0;
+  for (const group of dupGroups.values()) {
+    if (group.length < 2) continue; // 비중복 행은 그대로 둔다
+    dupGroupCount++;
+    dupRowCount += group.length;
+    for (const s of group) {
+      const majority = cityMajorityPrefix.get(s.city);
+      if (s.prefix !== majority) {
+        dupExcludeIds.add(s.id);
+        excludedStops.push({
+          id: s.id, name: s.name, lat: fmtCoord(s.latE6), lng: fmtCoord(s.lngE6), city: s.city,
+          reason: '정책1_중복접두사불일치',
+          detail: 'nodeId접두사=' + (s.prefix || '(없음)') + ', cityCode ' + s.city + '의 주류접두사=' + (majority || '(없음)'),
+        });
+      }
+    }
+  }
+
+  // 4) 정책 2: 지원하지 않는 도시코드(data/cities.json 기준) 행은 전부 제외.
+  const excludedByCity = new Map(); // 미지원 도시코드별 제외 수
+  const stops = []; // {id,name,latE6,lngE6,ars,city}
+  const cityPts = new Map(); // code -> [[latE6,lngE6], ...] (bbox/center 계산용)
+
+  for (const s of cleaned) {
+    if (dupExcludeIds.has(s.id)) continue; // 정책 1에서 이미 제외, 중복 보고 방지
+    if (!supported.has(s.city)) {
+      excludedByCity.set(s.city, (excludedByCity.get(s.city) || 0) + 1);
+      excludedStops.push({
+        id: s.id, name: s.name, lat: fmtCoord(s.latE6), lng: fmtCoord(s.lngE6), city: s.city,
+        reason: '정책2_미지원도시코드',
+      });
+      continue;
+    }
+    stops.push(s);
+    if (!cityPts.has(s.city)) cityPts.set(s.city, []);
+    cityPts.get(s.city).push([s.latE6, s.lngE6]);
   }
 
   // 4) 타일 분할 (파일명 규칙은 상단 주석 참고)
@@ -299,6 +377,19 @@ async function main() {
     cities,
   }, null, 1) + '\n');
 
+  // 6-1) 제외된 행 전체 목록 (data/excluded-stops.json). 배포 대상은 아니지만 원본 CSV만큼 민감하지 않고
+  //      재현 검증에 필요하므로 git에는 커밋한다 (.vercelignore로 배포에서만 뺀다).
+  excludedStops.sort((a, b) => byCodeUnit(a.id, b.id));
+  fs.writeFileSync(EXCLUDED_PATH, JSON.stringify({
+    generatedAt: collected,
+    policies: {
+      정책1_중복접두사불일치: '이름+좌표(소수 4자리) 중복 그룹에서 자신의 cityCode 주류 nodeId 접두사와 다른 행 제외',
+      정책2_미지원도시코드: 'data/cities.json(TAGO 도시코드 목록)에 없는 cityCode의 행 전부 제외',
+    },
+    count: excludedStops.length,
+    rows: excludedStops,
+  }, null, 1) + '\n');
+
   // 7) 점검 출력
   const total = sizes.reduce((a, s) => a + s.bytes, 0);
   const max = sizes.reduce((a, s) => (s.bytes > a.bytes ? s : a), sizes[0]);
@@ -308,9 +399,11 @@ async function main() {
   const kb = (x) => (x / 1024).toFixed(1) + 'KB';
   console.log('\n== 제거한 행 (이유별) ==');
   for (const [k, v] of Object.entries(removed)) console.log('  ' + k + ': ' + v);
+  console.log('  정책 1 (중복 정류장, 접두사 불일치): ' + dupExcludeIds.size + '행 제외 (중복 그룹 ' + dupGroupCount + '개, 그룹 내 행 ' + dupRowCount + '개 중)');
   const exTotal = [...excludedByCity.values()].reduce((a, b) => a + b, 0);
-  console.log('  미지원 도시코드(정책 A): ' + exTotal + '행, ' + excludedByCity.size + '개 코드');
+  console.log('  정책 2 (미지원 도시코드): ' + exTotal + '행, ' + excludedByCity.size + '개 코드');
   for (const [c, v] of [...excludedByCity.entries()].sort((a, b) => b[1] - a[1])) console.log('    ' + c + ': ' + v);
+  console.log('  제외 행 전체 목록: data/excluded-stops.json (' + excludedStops.length + '행)');
   console.log('\n== 결과 ==');
   console.log('  포함 정류장: ' + stops.length);
   console.log('  타일 수: ' + keys.length + ', 총 용량: ' + kb(total) + ' (' + (total / 1048576).toFixed(2) + 'MB)');

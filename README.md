@@ -62,7 +62,8 @@ npx wrangler deploy
    node scripts/build-tiles.js                   # data/cities.json의 지원 도시 기준
    node scripts/build-tiles.js --refresh-cities  # TAGO 도시코드 목록도 다시 받을 때 (.env의 TAGO_API_KEY 필요)
    ```
-3. `data/tiles/`, `data/tiles/index.json`, `data/cities.json`이 갱신됩니다. `index.json`의 `version`이 바뀌면 앱이 기존 타일 캐시를 버리고 새로 받습니다.
+3. `data/tiles/`, `data/tiles/index.json`, `data/cities.json`, `data/excluded-stops.json`이 갱신됩니다. `index.json`의 `version`이 바뀌면 앱이 기존 타일 캐시를 버리고 새로 받습니다.
+   - 타일에서 제외되는 행은 두 가지입니다: **정책 1**(같은 이름·좌표인데 nodeId/cityCode만 다른 중복 그룹에서, 자신의 cityCode 주류 nodeId 접두사와 다른 행), **정책 2**(`data/cities.json`에 없는 cityCode, 서울 11 포함). 제외된 행 전체 목록은 `data/excluded-stops.json`에 남습니다(배포 대상 아님, `.vercelignore` 참고). 근거는 [`docs/phase0-findings.md`](docs/phase0-findings.md)의 "중복 정류장 검증" 절 참고.
 
 아이콘을 다시 만들 때는 `node scripts/build-icons.js`를 실행합니다.
 
