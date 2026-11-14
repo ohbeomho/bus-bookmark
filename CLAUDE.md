@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 현황
 
-버스 즐겨찾기 PWA — 자주 타는 정류장·노선만 즐겨찾기해 두고 도착 정보를 바로 보는 모바일 웹앱. 전체 요구사항은 `버스즐겨찾기_PWA_PRD.md`(v0.2)가 기준 문서이며, 기능 ID(F-H1, F-M4, P-2 등)와 우선순위(P0/P1/P2)는 여기서 정의된다.
+버스 즐겨찾기 PWA — 자주 타는 정류장·노선만 즐겨찾기해 두고 도착 정보를 바로 보는 모바일 웹앱. 전체 요구사항은 `버스즐겨찾기_PWA_PRD.md`(v0.3)가 기준 문서이며, 기능 ID(F-H1, F-M4, P-2 등)와 우선순위(P0/P1/P2)는 여기서 정의된다.
 
 현재는 초기 단계로 `worker/worker.js`(Cloudflare Worker 프록시)만 구현되어 있다. 프론트엔드, `wrangler.jsonc`, 타일 전처리 스크립트는 아직 없으며 PRD 8장의 폴더 구조를 따라 만들 예정이다. git 저장소도 아직 아니다.
 

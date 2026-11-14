@@ -155,3 +155,4 @@ worker/.dev.vars
 
 # 원본 정류장 CSV (전처리 입력, 배포 대상 아님)
 scripts/raw/
+data/raw/
