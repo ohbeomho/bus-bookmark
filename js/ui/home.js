@@ -51,6 +51,7 @@ let lastInputAt = Date.now(); // 마지막 사용자 입력 시각
 let idlePaused = false; // 입력이 없어 자동 새로고침을 멈춘 상태
 let quotaUntil = 0; // 이 시각까지 자동 새로고침 정지 (하루 한도 초과)
 let lastBest = new Map(); // F-G2: groupId → "stopKey|routeId" (마지막 렌더링 때 고른 그룹별 최속 노선)
+const othersOpen = new Set(); // F-H3: "다른 노선"을 펼쳐 둔 정류장 key (이 세션 동안만, 저장하지 않음)
 let renderPending = false; // 그룹 선택지를 여는 중이라 미뤄 둔 전체 다시 그리기 (선택지에서 포커스가 빠지면 그린다)
 let lastGeoPoll = 0; // 마지막 위치 재요청 시각 (홈이 보이는 동안 GEO_FRESH_MS 간격)
 let hadPos = false; // 직전 tick에서 쓸 수 있는 위치가 있었는지 (바뀌면 다시 그린다)
@@ -77,7 +78,7 @@ function dueAt(st, baseSec) {
 
 export function initHome(panel) {
   listEl = panel.querySelector("#stop-list");
-  // F-WX1 날씨: 도착 정보와 별개 모듈·별개 타이머. 실패하면 스스로 영역을 숨긴다
+  // F-WX1 날씨: 도착 정보와 별개 모듈·별개 타이머. 실패하면 스스로 회색 실패 문구를 보여 주고 30초 뒤 1회 재시도한다
   initWeather(panel.querySelector("#weather"));
   // F-CM1~F-CM4 출근 무지각 체크인: 날씨 바로 아래. 네트워크 호출이 없고 저장소도 따로라
   // 도착 정보 새로고침·타이머와 얽히지 않는다 (날짜가 바뀔 때만 tick에서 다시 그린다)
@@ -582,12 +583,36 @@ function card(stop) {
   else if (!r && !favs.length && st.loading) body.append(h("p", { class: "note" }, "불러오는 중…"));
 
   if (others.length) {
-    // F-H3a: 즐겨찾기 노선이 있으면 다른 노선의 출발 안내(도보 예측)는 연하게 → 즐겨찾기 노선 안내가 먼저 보이게
-    const list = h("ul", { class: "routes others" + (favs.length ? " dim" : "") }, others.map((x) => row(x, false)));
     if (!favs.length) {
+      // 즐겨찾기 노선이 없으면 고를 수 있게 다른 노선을 바로 보여 준다
+      const list = h("ul", { class: "routes others" }, others.map((x) => row(x, false)));
       body.append(h("p", { class: "hint" }, "타는 노선의 ☆를 눌러 즐겨찾기하세요. 지금 운행 중인 노선과 전에 본 노선만 보여요."), list);
     } else {
-      body.append(h("p", { class: "others-label" }, `다른 노선 ${others.length}개`), list);
+      // F-H3: 즐겨찾기 노선이 있으면 다른 노선은 기본으로 접어 두고 버튼으로 펼친다 (홈이 난잡해지지 않게).
+      // 접어도 같은 정류장 응답 1건에 들어 있으므로 호출은 늘지도 줄지도 않는다
+      const open = othersOpen.has(key);
+      const listId = `others-${key.replace(/[^A-Za-z0-9]/g, "_")}`;
+      body.append(
+        h(
+          "button",
+          {
+            class: "others-toggle",
+            type: "button",
+            "aria-expanded": String(open),
+            "aria-controls": listId,
+            "data-fkey": `o:${key}`,
+            onclick: () => {
+              if (othersOpen.has(key)) othersOpen.delete(key);
+              else othersOpen.add(key);
+              renderCard(key);
+            },
+          },
+          h("span", { class: "chev", "aria-hidden": "true" }, open ? "▾" : "▸"),
+          ` 다른 노선 ${others.length}개`
+        )
+      );
+      // F-H3a: 펼쳤을 때 다른 노선의 출발 안내(도보 예측)는 연하게 → 즐겨찾기 노선 안내가 먼저 보이게
+      if (open) body.append(h("ul", { class: "routes others dim", id: listId }, others.map((x) => row(x, false))));
     }
   }
 

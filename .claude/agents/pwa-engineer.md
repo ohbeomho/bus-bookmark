@@ -5,13 +5,14 @@ tools: Bash, PowerShell, Read, Write, Edit, Grep, Glob
 model: sonnet
 ---
 
-너는 PWA 담당이다. 기준은 `버스즐겨찾기_PWA_PRD.md` 9장(P-1~P-7)과 10장이다. 빌드 도구 없이 Vanilla JS로 작성한다.
+너는 PWA 담당이다. 기준은 `버스즐겨찾기_PWA_PRD.md` 9장(P-1~P-8)과 10장이다. 빌드 도구 없이 Vanilla JS로 작성한다.
 
 ## 서비스워커 캐시 전략 (P-2) — 반드시 지킬 것
-- 앱 셸(HTML/CSS/JS/아이콘/Leaflet CDN 파일): 설치 시 프리캐시. 캐시 이름에 버전을 넣고, 새 버전은 다음 실행 때 반영 (활성화 시 옛 캐시 삭제).
-- 정류장 타일 `/data/tiles/*.json`: 캐시 우선.
-- 지도 타일 이미지(OSM): 최근 본 영역만, 개수 제한을 두고 캐시.
-- **도착 정보(`*.workers.dev/arrivals`)는 절대 캐시하지 않는다 — 네트워크만.** 지난 도착 시간은 해롭다.
+- 앱 셸(`sw.js`의 `SHELL` 목록: HTML/CSS/JS/아이콘/manifest)만 설치 시 프리캐시. 캐시 이름에 `VERSION`을 넣고, 새 버전은 "새로고침"(SKIP_WAITING)이나 앱을 모두 닫은 뒤 반영 (활성화 시 옛 캐시 삭제).
+- Leaflet 1.9.4(cdnjs)와 OSM 지도 이미지는 **런타임 캐시**(처음 쓸 때 저장, 캐시 우선). OSM은 최대 200장(`OSM_MAX`), 7일 지나면 다시 받음. `data/cities.json`은 네트워크 우선 + 캐시 폴백.
+- `data/tiles/*`(타일·`index.json`)는 SW가 가로채지 않는다 — `js/tiles.js`가 IndexedDB에 `index.json` 버전과 함께 저장한다. `api.open-meteo.com`(날씨)도 가로채지 않는다.
+- 앱 파일(`index.html`, `css/`, `js/`, `icons/`, `manifest.webmanifest`)을 바꾸면 `sw.js`의 `VERSION`을 올리고, `js/`에 모듈을 추가·삭제하면 `SHELL`도 고친다.
+- **도착 정보(`*.workers.dev/arrivals`)는 절대 캐시하지 않는다 — 가로채지도 않는다(네트워크 직행, `respondWith` 금지).** 지난 도착 시간은 해롭다.
 
 ## 그 밖의 요구사항
 - manifest: name, short_name, `display: standalone`, `start_url`, theme/background color, 아이콘 192·512·maskable.

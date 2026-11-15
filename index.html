@@ -38,7 +38,7 @@
     <!-- 즐겨찾기 홈 (PRD 5.1) -->
     <section id="panel-home" class="panel" aria-labelledby="app-title">
       <div id="ptr" class="ptr" aria-hidden="true">당겨서 새로고침</div>
-      <!-- 날씨 (F-WX1). 내용은 js/weather.js가 채우고, 못 받으면 영역을 그냥 숨긴다 -->
+      <!-- 날씨 (F-WX1). 내용은 js/weather.js가 채우고, 못 받으면 회색 실패 문구를 보여 주고 30초 뒤 1회 재시도한다 -->
       <div id="weather" class="weather" role="group" aria-label="현재 날씨" hidden></div>
       <!-- 출근 무지각 체크인 (F-CM1~F-CM4). js/ui/commute.js가 채운다.
            목표 시간을 설정하기 전에는 통째로 숨긴다 -->
@@ -106,7 +106,7 @@
         <button id="commute-clear" class="btn" type="button" hidden>목표 시간 지우기</button>
       </section>
 
-      <!-- 앱 설치 안내 (P-4~P-6). 항상 보인다. 기기별 문구 중 하나만 js/ui/install.js가 보여 준다 -->
+      <!-- 앱 설치 안내 (P-4·P-5·P-8). 항상 보인다. 기기별 문구 중 하나만 js/ui/install.js가 보여 준다 -->
       <section id="install-group" class="group" aria-labelledby="h-install">
         <h2 id="h-install">앱 설치</h2>
         <p>이 서비스는 <strong>PWA(설치형 웹앱)</strong>예요. 홈 화면에 설치하면 주소창 없이 앱처럼 바로 열리고, 인터넷이 끊겨도 즐겨찾기 목록은 열려요. 앱 스토어를 거치지 않고 용량도 거의 차지하지 않아요.</p>

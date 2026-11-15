@@ -23,7 +23,7 @@
 | `scripts/` | 데이터·아이콘 생성 스크립트 (배포 대상 아님) |
 | `vercel.json`, `.vercelignore` | Vercel 헤더(CSP·캐시)와 배포 제외 목록 |
 
-지원 지역은 **제주(cityCode 39) 하나**입니다(PRD v0.5, 4.4절). 다른 TAGO 지역·서울(별도 API)은 보류 상태이며, 조사·구현은 `feature/seoul-support` 브랜치와 `docs/phase0-findings.md`·`docs/phase0-seoul-findings.md`에 남아 있습니다.
+지원 지역은 **제주(cityCode 39) 하나**입니다(PRD v0.5, 4.4절). 다른 TAGO 지역·서울(별도 API)은 보류 상태이며, 조사·구현은 `docs/phase0-findings.md`(main)와 `feature/seoul-support` 브랜치(서울 조사 문서 `docs/phase0-seoul-findings.md`는 그 브랜치에만 있음)에 남아 있습니다.
 
 ## 로컬 실행
 
@@ -72,7 +72,7 @@ npx wrangler deploy
 빌드 단계가 없는 정적 사이트입니다. Vercel에서 저장소를 연결하면 루트 폴더가 그대로 배포됩니다.
 
 - `.vercelignore`가 원본 데이터·스크립트·Worker·문서를 배포에서 뺍니다.
-- `vercel.json`이 CSP와 캐시 헤더를 설정합니다. **외부 리소스(지도 CDN, 지도 타일 등)를 추가하면 CSP도 함께 고쳐야** 배포본에서 막히지 않습니다.
+- `vercel.json`이 CSP와 캐시 헤더를 설정합니다. 지금 허용된 외부 출처는 Worker, Leaflet 1.9.4(cdnjs), OSM 지도 타일, Open-Meteo입니다. **다른 외부 리소스를 추가하면 CSP도 함께 고쳐야** 배포본에서 막히지 않습니다.
 - 운영 주소가 `https://jeju-bus-bookmark.vercel.app`가 아니게 되면 Worker의 `ALLOWED_ORIGINS`를 바꾸고 다시 배포하세요. Preview 배포 주소는 허용하지 않으므로 Preview에서는 도착 정보가 나오지 않습니다.
 
 ## 데이터 출처

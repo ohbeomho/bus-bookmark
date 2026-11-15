@@ -27,8 +27,9 @@ function showTab() {
   document.body.dataset.tab = tab;
   main.scrollTop = 0;
   updateActive();
-  // 지도·위치 권한은 지도 탭을 처음 열 때 시작한다 (앱 시작 시 요청하지 않음).
-  // 지도 모듈은 홈 첫 화면에 필요 없으므로 이때 불러온다
+  // 지도는 지도 탭을 처음 열 때 시작한다. 지도 모듈은 홈 첫 화면에 필요 없으므로 이때 불러온다.
+  // (위치 권한은 지도 탭만의 것이 아니다: 홈의 거리순 정렬·도보 안내와 날씨도 js/geo.js로 위치를 요청하고,
+  //  지도 탭이 받은 위치도 geo.setPosition으로 공유된다)
   if (tab === "map") {
     import("./map.js")
       .then((m) => m.showMap(document.getElementById("panel-map"), { onArrivals: primeArrivals, peekArrivals }))

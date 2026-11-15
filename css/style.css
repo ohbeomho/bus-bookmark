@@ -15,8 +15,8 @@
      seat는 제주에 없는 유형이라 임의 배색. 글자는 옅은 배경 기준 대비 4.5:1 이상 */
   --rt-trunk-fg: #0b4fa8;   --rt-trunk-bg: #dbe9fb;   /* 간선 */
   --rt-branch-fg: #006b68;  --rt-branch-bg: #d4f5f4;  /* 지선 (청록) */
-  --rt-express-fg: #b3261e; --rt-express-bg: #fbe0de; /* 급행·광역 */
-  --rt-circular-fg: #7a6000; --rt-circular-bg: #fbf0c2; /* 관광순환 (노랑) */
+  --rt-express-fg: #b3261e; --rt-express-bg: #fbe0de; /* 급행·공항리무진 */
+  --rt-circular-fg: #7a6000; --rt-circular-bg: #fbf0c2; /* 관광지순환·자율주행·심야 (노랑) */
   --rt-village-fg: #006b68; --rt-village-bg: #d4f5f4; /* 마을 = 지선과 같은 청록 */
   --cm-ontime-fg: #16653a;  --cm-ontime-bg: #d8f0e0;  /* 출근 체크인 무지각 (초록, 노선 색과 별개) */
   --rt-seat-fg: #0a5b67;    --rt-seat-bg: #d5eef2;    /* 좌석 (임의 배색) */
@@ -443,7 +443,24 @@ button.pause-note { cursor: pointer; }
 .others .eta { font-size: 1.05rem; }
 /* F-H3a: 즐겨찾기 노선이 있는 카드에서는 다른 노선의 출발 안내를 연하게 (경고색 포함) */
 .others.dim .depart { opacity: .55; font-weight: 500; }
-.others-label { margin: .5rem .25rem .25rem; color: var(--muted); font-weight: 600; font-size: .9rem; }
+/* F-H3: 다른 노선 펼치기 버튼 (기본 접힘) */
+.others-toggle {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+  width: 100%;
+  min-height: var(--tap);
+  margin-top: .25rem;
+  padding: 0 .25rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: .9rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
 
 .note, .hint { margin: .4rem .25rem; color: var(--muted); }
 .note { font-weight: 600; }

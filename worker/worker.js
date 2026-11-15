@@ -1,10 +1,15 @@
 // 버스 도착정보 프록시 (Cloudflare Workers)
 // - 서비스키는 코드에 넣지 않고, Cloudflare Secret(SERVICE_KEY, 공공데이터포털 Decoding 키)에 저장합니다.
 // - 허용 출처는 wrangler.jsonc의 vars.ALLOWED_ORIGINS(쉼표 구분)에서 읽습니다.
-// - 프론트엔드 호출 예: https://<워커주소>/arrivals?cityCode=25&nodeId=DJB8001793
+// - 프론트엔드 호출 예: https://<워커주소>/arrivals?cityCode=39&nodeId=JEB405000001
+// - 제주 전용(cityCode 39, nodeId "JEB"+숫자 9자리)만 받는다. 그 밖의 입력은 업스트림을 부르지 않고 400 —
+//   존재하지 않는 정류장 ID로 TAGO 하루 한도(모든 사용자 공유)를 쓰는 것을 줄인다
 
 const API_URL =
   "https://apis.data.go.kr/1613000/ArvlInfoInqireService/getSttnAcctoArvlPrearngeInfoList";
+
+const JEJU_CITY_CODE = "39";
+const JEJU_NODE_RE = /^JEB\d{9}$/; // data/tiles의 제주 정류장 4,352개가 모두 이 형식
 
 const UPSTREAM_TIMEOUT_MS = 6000; // 클라이언트 타임아웃(8초)보다 짧게
 const CACHE_TTL_MS = 15000;
@@ -168,8 +173,8 @@ export default {
 
     const cityCode = url.searchParams.get("cityCode");
     const nodeId = url.searchParams.get("nodeId");
-    // 앞자리 0 거부: "25"와 "025"가 서로 다른 캐시 키로 업스트림을 두 번 부르는 것을 막음
-    if (!/^[1-9]\d{0,8}$/.test(cityCode || "") || !/^[A-Za-z0-9]{1,30}$/.test(nodeId || "")) {
+    // 제주 전용: cityCode는 정확히 "39"("039" 같은 변형은 캐시 키 중복이라 거부), nodeId는 "JEB"+숫자 9자리
+    if (cityCode !== JEJU_CITY_CODE || !JEJU_NODE_RE.test(nodeId || "")) {
       return new Response("Bad request", { status: 400, headers: cors });
     }
 
