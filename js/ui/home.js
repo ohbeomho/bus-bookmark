@@ -680,20 +680,24 @@ function departNote(due, walk) {
   return el;
 }
 
-/** 출발 안내 문구 갱신. 표시가 바뀔 때만 DOM을 고친다 (1초마다 호출) */
+/**
+ * 출발 안내 문구 갱신. 표시가 바뀔 때만 DOM을 고친다 (1초마다 호출).
+ * 도보 시간은 직선거리 기반 추정이라 분 단위로 정확하지 않으므로, 몇 분 후에 출발하라는
+ * 식의 숫자 안내 대신 여유 정도만 말로 전한다(WALK_SAFETY_MIN 이상 여유면 "여유로워요").
+ */
 export function renderDepart(el, now) {
   const walk = Number(el.dataset.walk);
   const diff = etaMinutes(el.dataset.due, now) - walk;
   if (el.dataset.diff === String(diff)) return;
   el.dataset.diff = String(diff);
   el.classList.toggle("warn", diff < 0);
-  const w = walk === 0 ? "정류장 바로 앞" : `도보 ${walk}분`;
+  const w = walk === 0 ? "정류장 바로 앞" : `도보 약 ${walk}분`;
   const text =
     diff < 0
-      ? `${w} · 이미 놓쳤을 수 있어요`
-      : diff === 0
-        ? `${w} · 지금 바로 출발하세요`
-        : `${w} · ${diff}분 후 출발하면 탈 수 있어요`;
+      ? `${w} · 이미 늦었을 수도 있어요`
+      : diff < WALK_SAFETY_MIN
+        ? `${w} · 지금 출발해야 할 것 같아요`
+        : `${w} · 지금 출발하면 여유로워요`;
   el.replaceChildren(text);
 }
 
