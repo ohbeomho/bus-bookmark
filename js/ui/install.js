@@ -2,6 +2,8 @@
 //  - 서비스워커 등록 + "새 버전이 있어요" 안내
 //  - Android(Chromium): beforeinstallprompt를 저장해 두었다가 설정 화면의 "앱으로 설치" 버튼으로 보여 준다
 //  - iOS Safari: 설치 이벤트가 없으므로 첫 방문에 1회 "공유 → 홈 화면에 추가" 안내
+//  - 설정의 "앱 설치" 항목은 항상 보인다 (P-6): PWA 설명 + 지금 기기·브라우저에 맞는 설치 방법 한 줄.
+//    문구는 index.html에 정적으로 있고(인라인 스크립트는 CSP에 막힘) 여기서는 data-os로 하나만 골라 보여 준다
 import { h } from "./dom.js";
 
 const IOS_TIP_KEY = "bus-bookmark:ios-install-tip";
@@ -64,22 +66,34 @@ export function registerServiceWorker() {
 
 // ---------- 설치 ----------
 export function initInstall() {
-  const group = document.getElementById("install-group");
   const btn = document.getElementById("install-btn");
-  const help = document.getElementById("install-help");
-  const iosHelp = document.getElementById("install-ios");
+  const how = document.getElementById("install-how");
+  const done = document.getElementById("install-done");
+  const tips = [...document.querySelectorAll(".install-tip[data-os]")];
   let deferred = null;
 
   const ua = navigator.userAgent;
   const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const iosSafari = ios && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA\//.test(ua);
 
+  /** 지금 기기·브라우저에 맞는 설치 방법 (UA 추정이라 틀릴 수 있어, 전체 목록도 펼쳐 볼 수 있게 둔다) */
+  const platform = () => {
+    if (deferred) return "prompt"; // 설치 이벤트를 받았으면 버튼 하나로 끝
+    if (ios) return iosSafari ? "ios-safari" : "ios-other";
+    if (/SamsungBrowser/.test(ua)) return "samsung";
+    if (/Android/.test(ua)) return "android";
+    if (/Firefox\//.test(ua)) return "unsupported"; // 데스크톱 Firefox는 PWA 설치 기능이 없다
+    if (/Macintosh/.test(ua) && !/Chrome|Edg\//.test(ua)) return "mac-safari"; // 파일 메뉴 → Dock에 추가
+    return "desktop";
+  };
+
   const render = () => {
     const installed = isStandalone();
+    done.hidden = !installed;
+    how.hidden = installed;
     btn.hidden = !deferred || installed;
-    iosHelp.hidden = !iosSafari || installed;
-    help.hidden = btn.hidden;
-    group.hidden = btn.hidden && iosHelp.hidden;
+    const os = platform();
+    for (const t of tips) t.hidden = installed || t.dataset.os !== os;
   };
 
   window.addEventListener("beforeinstallprompt", (e) => {

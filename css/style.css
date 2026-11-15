@@ -608,6 +608,11 @@ fieldset.group legend { float: left; width: 100%; padding: 0; margin-bottom: .3r
 .choice input { width: 1.3rem; height: 1.3rem; margin: 0; }
 .help, .group p { color: var(--muted); font-size: .9rem; margin: .4rem 0 0; }
 #install-btn { margin-top: .6rem; }
+.group p.install-done { color: var(--text); font-weight: 600; }
+.group p.install-tip { color: var(--text); }
+.install-more { margin-top: .5rem; }
+.install-more summary { display: flex; align-items: center; min-height: var(--tap); color: var(--accent); font-size: .9rem; font-weight: 600; cursor: pointer; }
+.install-more li + li { margin-top: .25rem; }
 .plain { margin: .4rem 0 0; padding-left: 1.1rem; color: var(--muted); font-size: .9rem; }
 
 /* ---------- 알림·바텀시트 ---------- */

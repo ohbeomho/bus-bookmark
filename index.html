@@ -106,11 +106,33 @@
         <button id="commute-clear" class="btn" type="button" hidden>목표 시간 지우기</button>
       </section>
 
-      <section id="install-group" class="group" aria-labelledby="h-install" hidden>
+      <!-- 앱 설치 안내 (P-4~P-6). 항상 보인다. 기기별 문구 중 하나만 js/ui/install.js가 보여 준다 -->
+      <section id="install-group" class="group" aria-labelledby="h-install">
         <h2 id="h-install">앱 설치</h2>
-        <p id="install-help">홈 화면에 설치하면 앱처럼 바로 열려요.</p>
-        <button id="install-btn" class="btn primary" type="button" hidden>앱으로 설치</button>
-        <p id="install-ios" hidden>공유 버튼(□↑)을 누르고 '홈 화면에 추가'를 선택하면 앱처럼 열려요.</p>
+        <p>이 서비스는 <strong>PWA(설치형 웹앱)</strong>예요. 홈 화면에 설치하면 주소창 없이 앱처럼 바로 열리고, 인터넷이 끊겨도 즐겨찾기 목록은 열려요. 앱 스토어를 거치지 않고 용량도 거의 차지하지 않아요.</p>
+        <p id="install-done" class="install-done" hidden>✓ 지금 설치된 앱으로 실행 중이에요.</p>
+        <div id="install-how">
+          <button id="install-btn" class="btn primary" type="button" hidden>앱으로 설치</button>
+          <p class="install-tip" data-os="prompt" hidden>버튼을 누르면 바로 설치돼요.</p>
+          <p class="install-tip" data-os="ios-safari" hidden>아래쪽 <strong>공유 버튼(□↑)</strong>을 누르고 <strong>'홈 화면에 추가'</strong>를 선택하세요.</p>
+          <p class="install-tip" data-os="ios-other" hidden><strong>공유 버튼(□↑)</strong>을 누르고 <strong>'홈 화면에 추가'</strong>를 선택하세요. 메뉴에 없으면 Safari에서 이 주소를 열어 주세요.</p>
+          <p class="install-tip" data-os="android" hidden>오른쪽 위 <strong>메뉴(⋮)</strong>에서 <strong>'앱 설치'</strong> 또는 <strong>'홈 화면에 추가'</strong>를 선택하세요.</p>
+          <p class="install-tip" data-os="samsung" hidden>아래쪽 <strong>메뉴(≡)</strong>에서 <strong>'현재 페이지 추가' → '홈 화면'</strong>을 선택하세요.</p>
+          <p class="install-tip" data-os="desktop" hidden>주소창 오른쪽의 <strong>설치 아이콘</strong>을 누르거나, 브라우저 메뉴에서 <strong>'설치'</strong> 항목을 선택하세요.</p>
+          <p class="install-tip" data-os="mac-safari" hidden>메뉴 막대의 <strong>파일 → 'Dock에 추가'</strong>를 선택하세요.</p>
+          <p class="install-tip" data-os="unsupported" hidden>이 브라우저는 앱 설치를 지원하지 않을 수 있어요. Chrome·Edge·Safari에서 열면 설치할 수 있어요.</p>
+          <details class="install-more">
+            <summary>기기별 설치 방법</summary>
+            <ul class="plain">
+              <li><strong>iPhone·iPad (Safari)</strong>: 공유 버튼(□↑) → '홈 화면에 추가'</li>
+              <li><strong>iPhone·iPad (Chrome 등)</strong>: 공유 버튼(□↑) → '홈 화면에 추가' (없으면 Safari에서 열기)</li>
+              <li><strong>Android (Chrome)</strong>: 메뉴(⋮) → '앱 설치' 또는 '홈 화면에 추가'</li>
+              <li><strong>Android (삼성 인터넷)</strong>: 메뉴(≡) → '현재 페이지 추가' → '홈 화면'</li>
+              <li><strong>PC (Chrome·Edge)</strong>: 주소창 오른쪽 설치 아이콘, 또는 메뉴 → '설치'</li>
+              <li><strong>Mac (Safari)</strong>: 메뉴 막대의 파일 → 'Dock에 추가'</li>
+            </ul>
+          </details>
+        </div>
       </section>
 
       <section class="group" aria-labelledby="h-privacy">
