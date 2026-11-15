@@ -210,7 +210,9 @@ async function load() {
 function refresh(force = false) {
   if (!el || inflight) return;
   const now = Date.now();
-  if (!force && now - lastOkAt < WEATHER_REFRESH_MS) return;
+  // 1분 여유: 받는 데 걸린 시간(위치 대기·응답)만큼 30분 타이머보다 lastOkAt이 늦어서, 여유가 없으면
+  // 30분 타이머가 매번 "아직 30분 안 됨"으로 건너뛰어 실제로는 60분마다 받게 된다
+  if (!force && now - lastOkAt < WEATHER_REFRESH_MS - 60 * 1000) return;
   if (!force && now - lastTryAt < WEATHER_RETRY_MS) return; // 실패 직후 반복 호출 방지
   lastTryAt = now;
   again = false;

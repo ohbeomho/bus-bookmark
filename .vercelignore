@@ -16,6 +16,13 @@ docs/
 .playwright-mcp/
 .vscode/
 
+# 루트에 떨어진 이미지(QA 스크린샷 등)·로그 — 앱 이미지는 icons/ 아래
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+*.log
+
 # 비밀값
 .env
 .env.*

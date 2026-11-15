@@ -255,8 +255,9 @@ async function refresh() {
   }
   drawRows(rows);
 
-  region = await checkRegion(c, z);
-  if (my !== seq) return;
+  const reg = await checkRegion(c, z);
+  if (my !== seq) return; // 늦게 끝난 옛 판정이 새 결과를 덮지 않게
+  region = reg;
   if (region !== "ok") setStatus(REGION_TEXT[region], ["제주로 이동", goJeju]);
   else if (failed) setStatus("일부 정류장을 불러오지 못했어요.", ["다시 시도", refresh]);
   else if (z < MIN_MARKER_ZOOM) setStatus("확대하면 정류장이 보여요", ["확대", () => map.setZoom(MIN_MARKER_ZOOM)]);
@@ -269,13 +270,15 @@ const REGION_TEXT = {
 };
 
 /**
- * 미지원 지역 판단 (PRD 4.4). 지원 도시 bbox 밖이면 미지원.
- * bbox는 직사각형이라 서울처럼 이웃 도시 bbox에 들어가는 미지원 지역이 있어, 확대된 상태에서는
- * 지도 중심 NEAR_M 안에 정류장이 하나도 없을 때도 안내한다.
+ * 미지원 지역 판단 (PRD 4.4). 제주 bbox 밖이고 근처(타일 한 칸, 약 5km)에 정류장 타일도 없으면 미지원.
+ * bbox는 이상치를 빼고 만든 범위라 추자도(위도 33.9 부근)나 본섬 해안 바다가 빠진다 — 정류장 타일이
+ * 근처에 있으면 지원 지역으로 본다. 확대된 상태에서는 지도 중심 NEAR_M 안에 정류장이 없을 때도 안내한다.
  */
 async function checkRegion(c, z) {
   if (!cities.length) return "ok";
-  if (!tiles.citiesAt(cities, c.lat, c.lng).length) return "unsupported";
+  const d = 0.05; // 타일 한 칸
+  const nearTile = (tiles.tilesInBounds(c.lat - d, c.lng - d, c.lat + d, c.lng + d) || []).length > 0;
+  if (!nearTile && !tiles.citiesAt(cities, c.lat, c.lng).length) return "unsupported";
   if (z < REGION_CHECK_ZOOM) return "ok";
   const dLat = NEAR_M / 111320;
   const dLng = dLat / Math.cos((c.lat * Math.PI) / 180);

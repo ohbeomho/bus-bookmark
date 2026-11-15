@@ -13,7 +13,6 @@ const FETCH_TIMEOUT_MS = 15000;
 const DB_NAME = "bus-bookmark";
 
 export const tileIdx = (deg) => Math.floor(Math.round(deg * 1e6) / GRID);
-export const tileName = (lat, lng) => `${tileIdx(lat)}_${tileIdx(lng)}`;
 /** 정류장 행 → 즐겨찾기 키 (store.stopKey와 같은 형식) */
 export const rowKey = (r) => `${r[5]}:${r[0]}`;
 
@@ -175,7 +174,6 @@ export function* loadedRows() {
   for (const rows of memory.values()) yield* rows;
 }
 
-export const isLoaded = (name) => memory.has(name);
 
 // ---------- 지원 도시 (data/cities.json) ----------
 let citiesP = null;

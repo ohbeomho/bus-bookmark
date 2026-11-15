@@ -51,6 +51,7 @@ let lastInputAt = Date.now(); // 마지막 사용자 입력 시각
 let idlePaused = false; // 입력이 없어 자동 새로고침을 멈춘 상태
 let quotaUntil = 0; // 이 시각까지 자동 새로고침 정지 (하루 한도 초과)
 let lastBest = new Map(); // F-G2: groupId → "stopKey|routeId" (마지막 렌더링 때 고른 그룹별 최속 노선)
+let renderPending = false; // 그룹 선택지를 여는 중이라 미뤄 둔 전체 다시 그리기 (선택지에서 포커스가 빠지면 그린다)
 let lastGeoPoll = 0; // 마지막 위치 재요청 시각 (홈이 보이는 동안 GEO_FRESH_MS 간격)
 let hadPos = false; // 직전 tick에서 쓸 수 있는 위치가 있었는지 (바뀌면 다시 그린다)
 
@@ -90,6 +91,11 @@ export function initHome(panel) {
   store.subscribe(onStoreChange);
   // 위치를 받으면 거리순 정렬·도보 안내를 다시 그린다 (지도 탭이 받은 위치도 같이 쓴다)
   geo.subscribe(() => render());
+  // 그룹 선택지를 닫으면(포커스가 빠지면) 그동안 미뤄 둔 다시 그리기를 한다. 포커스가 다음 요소로 옮겨간 뒤에 그린다
+  listEl.addEventListener("focusout", (e) => {
+    if (!renderPending || !e.target?.classList?.contains("group-select")) return;
+    setTimeout(() => renderPending && render(), 0);
+  });
   render();
 }
 
@@ -409,7 +415,22 @@ export function pickBestByGroup(entries) {
 
 const sameBest = (a, b) => a.size === b.size && [...a].every(([k, v]) => b.get(k) === v);
 
+/**
+ * 그룹 선택지(<select>)를 연 채 아직 고르지 않은 상태인지. 모바일의 네이티브 선택 UI는 몇 초씩 열려 있는데
+ * 그사이 목록을 갈아끼우면(위치 갱신·도착 정보 갱신 등) 선택 UI가 닫히고 고르던 것이 사라진다.
+ * 값을 바꾼 직후(change → 저장 → 다시 그리기)는 막지 않도록, 그릴 때의 값(data-cur)과 같을 때만 "여는 중"으로 본다.
+ */
+function groupPickerOpen(scope = listEl) {
+  const a = document.activeElement;
+  return !!a?.classList?.contains("group-select") && scope.contains(a) && a.value === (a.dataset.cur ?? "");
+}
+
 function render() {
+  if (groupPickerOpen()) {
+    renderPending = true; // 선택지에서 포커스가 빠지면 그린다 (initHome의 focusout)
+    return;
+  }
+  renderPending = false;
   const focusKey = document.activeElement?.dataset?.fkey;
   const stops = sortStops(store.getStops());
   lastBest = computeBest(stops);
@@ -431,10 +452,11 @@ function renderCard(key) {
   const old = listEl.querySelector(`[data-key="${CSS.escape(key)}"]`);
   const stop = store.getStop(key);
   if (!old || !stop) return;
-  // 그룹 선택 드롭다운을 쓰는 중이면 카드를 바꾸지 않는다: 모바일의 네이티브 선택 UI가 몇 초씩
-  // 열려 있는데 그사이 자동 새로고침이 카드를 갈아끼우면 고르던 것이 취소된다. 다음 갱신 때 그려진다
-  const open = document.activeElement;
-  if (open?.classList?.contains("group-select") && old.contains(open)) return;
+  // 그룹 선택 드롭다운을 쓰는 중이면 카드를 바꾸지 않는다 (groupPickerOpen 참고). 선택지를 닫으면 그려진다
+  if (groupPickerOpen(old)) {
+    renderPending = true;
+    return;
+  }
   // 그룹 최속 노선(F-G2)이 다른 카드로 옮겨갔으면 목록 전체를 다시 그려야 강조가 한 곳에만 남는다.
   // 비교는 render()와 같은(정렬된) 목록으로 해야 동점일 때 매번 전체 재렌더로 빠지지 않는다
   if (!sameBest(computeBest(sortStops(store.getStops())), lastBest)) return render();
@@ -890,6 +912,9 @@ function tick() {
     hadPos = hasPos;
     return render(); // render가 모든 카드를 다시 그리므로 아래 갱신은 건너뛴다
   }
+  // F-G2: 새로고침 없이 시간이 흘러 강조 대상이 바뀌었으면(예: 강조된 버스를 이제 걸어가선 못 탐) 다시 그린다.
+  // 정류장 20곳 이하·노선 몇 개라 매초 계산해도 가볍다
+  if (!sameBest(computeBest(sortStops(store.getStops()), now), lastBest)) return render();
   for (const el of listEl.querySelectorAll(".eta[data-due]")) renderEta(el, now);
   for (const el of listEl.querySelectorAll(".depart[data-due]")) renderDepart(el, now);
   // 오래된 정보는 흐리게 (한 번만 다시 그림)

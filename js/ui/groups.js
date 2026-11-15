@@ -43,6 +43,7 @@ export function groupSelect(key, route, fkey) {
       class: "group-select",
       "aria-label": `${route.routeNo || "?"}번 그룹`,
       "data-fkey": fkey,
+      "data-cur": cur, // 그릴 때의 값 — home.js가 "선택지를 여는 중"인지 판단할 때 쓴다
     },
     h("option", { value: "" }, groups.length ? "그룹 없음" : "그룹 지정"),
     groups.map((g) => h("option", { value: g.id, selected: g.id === cur }, g.name)),

@@ -584,15 +584,6 @@ body[data-tab="map"] main { overflow: hidden; padding: 0; }
 .sheet-h3 { margin: .4rem 0 0; font-size: 1rem; }
 .sheet-body .hint { margin: 0; }
 .routes.stale { opacity: .5; }
-.field select {
-  min-height: var(--tap);
-  padding: .5rem .8rem;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--bg);
-  font: inherit;
-  color: inherit;
-}
 
 /* ---------- 설정 ---------- */
 .group {
