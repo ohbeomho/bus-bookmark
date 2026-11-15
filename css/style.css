@@ -10,13 +10,15 @@
   --soon: #b3261e;
   --star: #b26a00;
   --danger: #b3261e;
-  /* 노선 유형별 색 (전광판 관례). 글자는 흰 배경 기준 대비 4.5:1 이상, 배경은 옅은 같은 계열 */
+  /* 노선 유형별 색. trunk/branch/express는 대전·제주 실제 도색(간선 파랑·지선 초록·급행 빨강,
+     외곽버스는 지선과 같은 초록)과 맞춘 색이다. village·seat는 실제 도색이 아니라 구분용 임의
+     배색이다(마을버스는 업체마다, 좌석버스는 지역마다 색이 달라 전국 공통 색이 없음).
+     글자는 흰 배경 기준 대비 4.5:1 이상, 배경은 옅은 같은 계열 */
   --rt-trunk-fg: #0b4fa8;   --rt-trunk-bg: #dbe9fb;   /* 간선·일반 */
-  --rt-branch-fg: #16653a;  --rt-branch-bg: #d8f0e0;  /* 지선 */
+  --rt-branch-fg: #16653a;  --rt-branch-bg: #d8f0e0;  /* 지선·외곽 */
   --rt-express-fg: #b3261e; --rt-express-bg: #fbe0de; /* 급행·광역 */
-  --rt-village-fg: #8a4b00; --rt-village-bg: #fbe7cc; /* 마을·순환 */
-  --rt-seat-fg: #0a5b67;    --rt-seat-bg: #d5eef2;    /* 좌석 */
-  --rt-outer-fg: #58399f;   --rt-outer-bg: #e6e0fa;   /* 외곽·농어촌 */
+  --rt-village-fg: #8a4b00; --rt-village-bg: #fbe7cc; /* 마을·순환 (임의 배색) */
+  --rt-seat-fg: #0a5b67;    --rt-seat-bg: #d5eef2;    /* 좌석 (임의 배색) */
   --radius: 14px;
   --tap: 44px;
   color-scheme: light dark;
@@ -39,7 +41,6 @@
     --rt-express-fg: #ff9e95; --rt-express-bg: #4a211e;
     --rt-village-fg: #f8c178; --rt-village-bg: #432f12;
     --rt-seat-fg: #8ad7e2;    --rt-seat-bg: #103a41;
-    --rt-outer-fg: #c4b2ff;   --rt-outer-bg: #2f2656;
   }
 }
 
@@ -286,7 +287,6 @@ button.pause-note { cursor: pointer; }
 .route-no[data-rtype="express"] { --rt-fg: var(--rt-express-fg); --rt-bg: var(--rt-express-bg); }
 .route-no[data-rtype="village"] { --rt-fg: var(--rt-village-fg); --rt-bg: var(--rt-village-bg); }
 .route-no[data-rtype="seat"]    { --rt-fg: var(--rt-seat-fg);    --rt-bg: var(--rt-seat-bg); }
-.route-no[data-rtype="outer"]   { --rt-fg: var(--rt-outer-fg);   --rt-bg: var(--rt-outer-bg); }
 /* 고대비 모드에서는 배경이 무시되므로 테두리로 칩 모양을 남긴다 */
 @media (forced-colors: active) {
   .route-no[data-rtype] { border: 1px solid currentColor; }

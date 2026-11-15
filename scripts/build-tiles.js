@@ -6,8 +6,8 @@
  *   node scripts/build-tiles.js [csv경로] [--refresh-cities]
  *     csv경로           기본값 data/raw/국토교통부_전국 버스정류장 위치정보.csv
  *     --refresh-cities  TAGO 도시코드 목록 API(getCtyCodeList)를 호출해 data/cities.json의
- *                       지원 도시 목록을 갱신한다. 서비스키는 환경변수 TAGO_API_KEY 또는
- *                       루트 .env의 TAGO_API_KEY(Decoding 키)에서만 읽고 어디에도 기록하지 않는다.
+ *                       지원 도시 목록을 갱신한다. 서비스키는 환경변수 OPEN_API_KEY 또는
+ *                       루트 .env의 OPEN_API_KEY(Decoding 키)에서만 읽고 어디에도 기록하지 않는다.
  *   평소 실행은 API를 호출하지 않고 data/cities.json의 지원 도시 목록을 입력으로 쓴다.
  *
  * 입력 CSV: EUC-KR(CP949), 따옴표 포함 CSV, 9컬럼
@@ -88,11 +88,11 @@ function parseCsv(text) {
 }
 
 function readDotEnvKey() {
-  if (process.env.TAGO_API_KEY) return process.env.TAGO_API_KEY.trim();
+  if (process.env.OPEN_API_KEY) return process.env.OPEN_API_KEY.trim();
   const p = path.join(ROOT, '.env');
   if (!fs.existsSync(p)) return null;
   for (const line of fs.readFileSync(p, 'utf8').split(/\r?\n/)) {
-    const m = line.match(/^\s*TAGO_API_KEY\s*=\s*(.*?)\s*$/);
+    const m = line.match(/^\s*OPEN_API_KEY\s*=\s*(.*?)\s*$/);
     if (m) return m[1].replace(/^["']|["']$/g, '');
   }
   return null;
@@ -100,7 +100,7 @@ function readDotEnvKey() {
 
 async function fetchCityList() {
   const key = readDotEnvKey();
-  if (!key) die('TAGO_API_KEY를 찾을 수 없다 (환경변수 또는 루트 .env).');
+  if (!key) die('OPEN_API_KEY를 찾을 수 없다 (환경변수 또는 루트 .env).');
   const url = 'https://apis.data.go.kr/1613000/ArvlInfoInqireService/getCtyCodeList?' +
     new URLSearchParams({ serviceKey: key, _type: 'json' }).toString();
   let json;

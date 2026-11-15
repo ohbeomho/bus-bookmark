@@ -9,7 +9,7 @@ model: sonnet
 
 ## 검증 항목
 1. **Worker 동작**: `https://bus-bookmark-worker.ohbeomho0322.workers.dev/arrivals?cityCode=..&nodeId=..` 를 호출한다. Worker는 Origin을 검사하므로 `-H "Origin: http://localhost:5500"`을 붙인다. 403이면 Origin 문제, 400이면 파라미터 형식 문제, 502면 업스트림 실패.
-2. **지원 지역**: TAGO 도시코드 목록 API(③)를 호출해 사용자 지역이 있는지 확인. 이 API는 Worker가 중계하지 않으므로 루트 `.env`의 `TAGO_API_KEY`로 직접 호출한다.
+2. **지원 지역**: TAGO 도시코드 목록 API(③)를 호출해 사용자 지역이 있는지 확인. 이 API는 Worker가 중계하지 않으므로 루트 `.env`의 `OPEN_API_KEY`로 직접 호출한다.
 3. **CSV ↔ API 연결**: 정류장 CSV의 `정류장번호`를 nodeId로, `도시코드`를 cityCode로 넣어 도착정보가 오는지 여러 도시·여러 정류장으로 샘플 확인한다.
 4. **응답 형태 기록**: `item`이 배열/객체/빈 문자열로 오는 경우, `arrtime`(초), `routeid`·`routeno`·`arrprevstationcnt`·`vehicletp` 실제 값을 확인한다.
 
