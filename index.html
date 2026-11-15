@@ -38,6 +38,8 @@
     <!-- 즐겨찾기 홈 (PRD 5.1) -->
     <section id="panel-home" class="panel" aria-labelledby="app-title">
       <div id="ptr" class="ptr" aria-hidden="true">당겨서 새로고침</div>
+      <!-- 날씨 (F-WX1). 내용은 js/weather.js가 채우고, 못 받으면 영역을 그냥 숨긴다 -->
+      <div id="weather" class="weather" role="group" aria-label="현재 날씨" hidden></div>
       <div id="stop-list" class="stop-list"></div>
       <div class="dock">
         <div class="dock-notes" role="status" aria-live="polite">

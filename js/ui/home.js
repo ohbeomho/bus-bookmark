@@ -14,6 +14,7 @@ import * as store from "../store.js";
 import * as geo from "../geo.js";
 import { fetchArrivals, lastRequestAt } from "../api.js";
 import { groupSelect } from "./groups.js";
+import { initWeather, setWeatherActive } from "../weather.js";
 import {
   MIN_AUTO_REFRESH_SEC,
   STALE_AFTER_MS,
@@ -75,6 +76,8 @@ function dueAt(st, baseSec) {
 
 export function initHome(panel) {
   listEl = panel.querySelector("#stop-list");
+  // F-WX1 날씨: 도착 정보와 별개 모듈·별개 타이머. 실패하면 스스로 영역을 숨긴다
+  initWeather(panel.querySelector("#weather"));
   panel.querySelector("#refresh-btn").addEventListener("click", () => refreshAll(true));
   panel.querySelector("#idle-note").addEventListener("click", onUserInput);
   setupPull(document.getElementById("main"), panel.querySelector("#ptr"));
@@ -102,6 +105,9 @@ function pollPosition(now) {
 export function setHomeActive(on) {
   if (on === active) return;
   active = on;
+  // 날씨(F-WX1)는 여기서 켜고 끄기만 한다. 주기(30분)는 weather.js가 따로 관리하므로
+  // 아래 도착 정보 타이머(30초)와 섞이지 않는다
+  setWeatherActive(on);
   if (!on) {
     clearTimeout(autoTimer);
     clearInterval(tickTimer);

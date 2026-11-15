@@ -28,3 +28,12 @@ export const GEO_FRESH_MS = 2 * 60 * 1000; // 이보다 오래된 위치는 다�
 export const GEO_STALE_MS = 5 * 60 * 1000; // 이보다 오래된 위치로는 거리·도보 안내를 하지 않는다 (움직였을 수 있음)
 export const GEO_RETRY_MS = 5 * 60 * 1000; // 위치를 못 받은 뒤 다시 시도할 때까지
 export const GEO_MAX_FAILS = 3; // 연속 실패가 이만큼이면 이 세션에서는 자동 요청을 멈춘다
+
+// 홈 화면 날씨 (F-WX1). Open-Meteo는 키가 필요 없어 Worker를 거치지 않고 프론트에서 직접 부른다.
+// TAGO/Worker 호출 한도와 무관하며, 버스 도착 정보와는 별개 타이머로 돈다.
+export const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
+export const WEATHER_REFRESH_MS = 30 * 60 * 1000; // 홈이 계속 보여도 이 간격으로만 다시 받는다
+export const WEATHER_RETRY_MS = 5 * 60 * 1000; // 실패한 뒤 다시 시도할 때까지 (조용히 숨긴 채 기다린다)
+export const WEATHER_TIMEOUT_MS = 6000; // 1회 요청 타임아웃 (초과하면 영역을 숨긴다)
+export const WEATHER_RAIN_PROB = 60; // 오늘 강수확률(%)이 이 이상이면 약한 우산 안내
+export const FALLBACK_CITY_CODE = 39; // 위치를 모를 때 쓰는 기본 좌표의 도시 (제주, data/cities.json의 center)

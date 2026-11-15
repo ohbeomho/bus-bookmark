@@ -12,8 +12,10 @@
 //  - data/tiles/* (타일·index.json)         : 가로채지 않는다. tiles.js가 IndexedDB에 버전 관리하며 캐시하므로
 //                                             SW가 또 캐시하면 index 버전이 바뀐 뒤에도 옛 타일이 섞일 수 있다
 //  - 도착 정보 (*.workers.dev/arrivals)     : 절대 캐시하지 않는다. 가로채지도 않는다 (네트워크 직행)
+//  - 날씨 (api.open-meteo.com, F-WX1)       : 가로채지 않는다. 실패하면 홈의 날씨 영역이 그냥 숨겨지면 된다
+//                                             (옛 기온을 캐시에서 보여 주는 쪽이 더 나쁘다)
 
-const VERSION = "v7";
+const VERSION = "v8";
 const PREFIX = "bus-bookmark-";
 const SHELL_CACHE = `${PREFIX}shell-${VERSION}`;
 const DATA_CACHE = `${PREFIX}data-v1`; // cities.json (버전 독립. 항상 네트워크 우선이라 옛것이 남아도 폴백으로만 쓴다)
@@ -40,6 +42,7 @@ const SHELL = [
   "js/api.js",
   "js/tiles.js",
   "js/geo.js",
+  "js/weather.js",
   "js/map.js",
   "js/ui/dom.js",
   "js/ui/groups.js",

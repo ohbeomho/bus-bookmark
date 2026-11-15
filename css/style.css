@@ -19,6 +19,7 @@
   --rt-express-fg: #b3261e; --rt-express-bg: #fbe0de; /* 급행·광역 */
   --rt-village-fg: #8a4b00; --rt-village-bg: #fbe7cc; /* 마을·순환 (임의 배색) */
   --rt-seat-fg: #0a5b67;    --rt-seat-bg: #d5eef2;    /* 좌석 (임의 배색) */
+  --wx-tip-fg: #0b4fa8;     --wx-tip-bg: #dbe9fb;     /* 우산 안내 (F-WX1) */
   --radius: 14px;
   --tap: 44px;
   color-scheme: light dark;
@@ -41,6 +42,7 @@
     --rt-express-fg: #ff9e95; --rt-express-bg: #4a211e;
     --rt-village-fg: #f8c178; --rt-village-bg: #432f12;
     --rt-seat-fg: #8ad7e2;    --rt-seat-bg: #103a41;
+    --wx-tip-fg: #a7c9ff;     --wx-tip-bg: #1b3356;
   }
 }
 
@@ -230,6 +232,30 @@ button.pause-note { cursor: pointer; }
 }
 .ptr.pulling { transition: none; }
 .ptr.ready { color: var(--accent); font-weight: 700; }
+
+/* ---------- 날씨 (F-WX1) ----------
+   도착 정보보다 작고 조용하게. 이모지는 장식이고 뜻은 옆의 텍스트("맑음", "비")가 전한다.
+   줄바꿈을 허용해 글자를 키워도 잘리지 않는다. */
+.weather {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .25rem .5rem;
+  padding: .35rem .5rem;
+  color: var(--muted);
+  font-size: .95rem;
+}
+.wx-icon { font-size: 1.25rem; line-height: 1; }
+.wx-temp { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+.wx-desc { color: var(--muted); }
+.wx-where { font-size: .85rem; }
+.wx-tip {
+  color: var(--wx-tip-fg);
+  background: var(--wx-tip-bg);
+  border-radius: 999px;
+  padding: .1rem .5rem;
+  font-weight: 600;
+}
 
 /* ---------- 정류장 카드 ---------- */
 .stop-list { display: flex; flex-direction: column; gap: .75rem; padding-top: .25rem; }
