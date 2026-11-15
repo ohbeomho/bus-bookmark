@@ -95,7 +95,6 @@ async function fetchWeather({ lat, lng }) {
     if (!res.ok) throw new Error(`http ${res.status}`);
     const j = await res.json();
     const cur = j?.current;
-    console.log(j);
     const temp = Number(cur?.temperature_2m);
     const code = Number(cur?.weather_code);
     if (!Number.isFinite(temp) || !Number.isFinite(code)) throw new Error("bad payload");
