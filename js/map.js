@@ -10,7 +10,6 @@ import * as geo from "./geo.js";
 import { h, toast } from "./ui/dom.js";
 import { initStopSheet, openStopSheet } from "./ui/stop-sheet.js";
 import { initSearch, showNearby, closeResults } from "./ui/search.js";
-import { openCityPicker } from "./ui/city-picker.js";
 
 // Leaflet 1.9.4 (cdnjs). 해시는 실제 파일로 계산 (sha256 값은 Leaflet 공식 문서의 SRI와 일치 확인)
 const LEAFLET_BASE = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/";
@@ -114,7 +113,7 @@ async function start(panel, options) {
     if (!saved || !userMoved) map.setView([res.pos.lat, res.pos.lng], START_ZOOM);
   } else if (!saved) {
     map.setView(FALLBACK, START_ZOOM);
-    toast(`${GEO_TEXT[res.error] || GEO_TEXT.unavailable} 제주시청 부근을 보여 드려요. '도시 선택'으로 옮길 수 있어요.`);
+    toast(`${GEO_TEXT[res.error] || GEO_TEXT.unavailable} 제주시청 부근을 보여 드려요.`);
   }
 }
 
@@ -123,13 +122,13 @@ const markUser = () => (userMoved = true);
 function bindUi(panel) {
   bound = true;
   panel.querySelector("#btn-locate").addEventListener("click", onLocate);
-  panel.querySelector("#btn-city").addEventListener("click", pickCity);
   panel.querySelector("#btn-list").addEventListener("click", () => {
     if (!map) return;
     const [s, w, n, e] = boundsArr(map.getBounds());
     showNearby(lastRows.filter((r) => r[2] >= s && r[2] <= n && r[3] >= w && r[3] <= e));
   });
   initSearch(panel.querySelector("#map-search"), panel.querySelector("#search-results"), {
+    keepOpen: [panel.querySelector("#btn-list")], // 목록 버튼은 바깥 탭으로 치지 않는다 (F-M7)
     getOrigin,
     cityName,
     onPick: focusStop,
@@ -209,7 +208,7 @@ async function onLocate() {
   btn.removeAttribute("aria-busy");
   btn.classList.remove("busy");
   if (res.pos) go(res.pos);
-  else toast(res.error === "denied" ? "위치 권한이 꺼져 있어요. 브라우저 설정에서 허용하거나 '도시 선택'을 이용해 주세요." : GEO_TEXT[res.error]);
+  else toast(res.error === "denied" ? "위치 권한이 꺼져 있어요. 브라우저 설정에서 허용해 주세요." : GEO_TEXT[res.error]);
 }
 
 // ---------- 지도 이동 → 타일 로딩 ----------
@@ -258,7 +257,7 @@ async function refresh() {
 
   region = await checkRegion(c, z);
   if (my !== seq) return;
-  if (region !== "ok") setStatus(REGION_TEXT[region], ["도시 선택", pickCity]);
+  if (region !== "ok") setStatus(REGION_TEXT[region], ["제주로 이동", goJeju]);
   else if (failed) setStatus("일부 정류장을 불러오지 못했어요.", ["다시 시도", refresh]);
   else if (z < MIN_MARKER_ZOOM) setStatus("확대하면 정류장이 보여요", ["확대", () => map.setZoom(MIN_MARKER_ZOOM)]);
   else setStatus("");
@@ -266,7 +265,7 @@ async function refresh() {
 
 const REGION_TEXT = {
   unsupported: "이 지역은 아직 지원하지 않아요.",
-  nostops: "이 근처에는 정류장 정보가 없어요. 아직 지원하지 않는 지역(서울 등)일 수 있어요.",
+  nostops: "이 근처에는 정류장 정보가 없어요. 제주 밖이라면 아직 지원하지 않는 지역이에요.",
 };
 
 /**
@@ -378,23 +377,14 @@ function focusStop(r) {
   openStop(r);
 }
 
-// ---------- 도시 선택·기준 위치 ----------
+// ---------- 기준 위치 ----------
 const cityName = (code) => cities.find((c) => c.code === code)?.name || "";
 
-async function pickCity() {
-  if (!cities.length) cities = await tiles.loadCities();
-  openCityPicker(document.getElementById("city-sheet"), cities, (c) => {
-    if (!map) return;
-    markUser();
-    if (Array.isArray(c.center)) map.setView(c.center, 14);
-    else {
-      const [s, w, n, e] = c.bbox;
-      map.fitBounds([
-        [s, w],
-        [n, e],
-      ]);
-    }
-  });
+/** 미지원 지역 안내의 버튼: 제주(F-L0 기본 위치)로 돌아간다. 제주 전용이라 도시 선택은 없다 (v0.6) */
+function goJeju() {
+  if (!map) return;
+  markUser();
+  map.setView(FALLBACK, START_ZOOM);
 }
 
 /** 검색 거리 기준: 현재 위치가 화면 근처면 현재 위치, 아니면 지도 중심 */

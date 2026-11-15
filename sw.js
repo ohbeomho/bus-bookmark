@@ -6,7 +6,7 @@
 //
 // 요청별 전략 (그 밖의 모든 요청에는 respondWith를 부르지 않는다 = 브라우저 기본 동작):
 //  - 앱 셸(같은 출처, SHELL 목록)          : install 때 프리캐시, 캐시 우선. 페이지 이동은 오프라인이면 index.html
-//  - data/cities.json                       : 네트워크 우선, 실패·지연 시 캐시 (오프라인 도시 선택용)
+//  - data/cities.json                       : 네트워크 우선, 실패·지연 시 캐시 (오프라인 지도 기본 위치·도시명용)
 //  - Leaflet 1.9.4 (cdnjs)                  : 처음 쓸 때 런타임 캐시, 캐시 우선
 //  - OSM 지도 이미지                        : 캐시 우선, 최대 OSM_MAX장, 7일 지나면 다시 받음
 //  - data/tiles/* (타일·index.json)         : 가로채지 않는다. tiles.js가 IndexedDB에 버전 관리하며 캐시하므로
@@ -15,7 +15,7 @@
 //  - 날씨 (api.open-meteo.com, F-WX1)       : 가로채지 않는다. 실패하면 홈의 날씨 영역이 그냥 숨겨지면 된다
 //                                             (옛 기온을 캐시에서 보여 주는 쪽이 더 나쁘다)
 
-const VERSION = "v10";
+const VERSION = "v11";
 const PREFIX = "bus-bookmark-";
 const SHELL_CACHE = `${PREFIX}shell-${VERSION}`;
 const DATA_CACHE = `${PREFIX}data-v1`; // cities.json (버전 독립. 항상 네트워크 우선이라 옛것이 남아도 폴백으로만 쓴다)
@@ -53,7 +53,6 @@ const SHELL = [
   "js/ui/install.js",
   "js/ui/search.js",
   "js/ui/stop-sheet.js",
-  "js/ui/city-picker.js",
   "icons/icon.svg",
   "icons/icon-192.png",
   "icons/icon-512.png",

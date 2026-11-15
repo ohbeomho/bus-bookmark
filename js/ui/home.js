@@ -560,7 +560,8 @@ function card(stop) {
   else if (!r && !favs.length && st.loading) body.append(h("p", { class: "note" }, "불러오는 중…"));
 
   if (others.length) {
-    const list = h("ul", { class: "routes others" }, others.map((x) => row(x, false)));
+    // F-H3a: 즐겨찾기 노선이 있으면 다른 노선의 출발 안내(도보 예측)는 연하게 → 즐겨찾기 노선 안내가 먼저 보이게
+    const list = h("ul", { class: "routes others" + (favs.length ? " dim" : "") }, others.map((x) => row(x, false)));
     if (!favs.length) {
       body.append(h("p", { class: "hint" }, "타는 노선의 ☆를 눌러 즐겨찾기하세요. 지금 운행 중인 노선과 전에 본 노선만 보여요."), list);
     } else {
@@ -846,7 +847,7 @@ function statusLine(stop, st, stale) {
 function tick() {
   const now = Date.now();
   pollPosition(now);
-  syncCommute(); // 홈을 열어 둔 채 자정을 넘겼을 때만 다시 그린다 (날짜 문자열 비교)
+  syncCommute(); // 목표까지 남은·지난 시간 갱신, 자정을 넘기면 다시 그린다
   // 위치가 새로 생겼거나(권한 허용) 오래돼 못 쓰게 됐으면(GEO_STALE_MS 초과) 정렬·도보 안내를 다시 그린다
   const hasPos = !!geo.getPosition();
   if (hasPos !== hadPos) {

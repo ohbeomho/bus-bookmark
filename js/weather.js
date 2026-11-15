@@ -10,7 +10,7 @@
 //   밖으로 나가는 좌표는 소수점 2자리(약 1km)로 뭉갠다 — 날씨에는 그 정도면 충분하고 정확한 위치를 보낼 이유가 없다.
 // - 실패(네트워크·타임아웃·이상한 응답)는 **조용히 영역을 숨긴다**. 토스트·배너를 띄우지 않는다
 //   (핵심 기능이 아니라서 도착 정보 화면을 방해하면 안 된다).
-import { getPosition, subscribe as subscribeGeo, distanceM } from "./geo.js";
+import { getPosition, ensurePosition, subscribe as subscribeGeo, distanceM } from "./geo.js";
 import {
   OPEN_METEO_URL,
   WEATHER_REFRESH_MS,
@@ -28,6 +28,8 @@ let inflight = null;
 let lastOkAt = 0; // 마지막 성공 시각
 let lastTryAt = 0; // 마지막 시도 시각 (실패 후 연타 방지)
 let shownAt = null; // 마지막으로 그린 좌표 {lat, lng, fallback}
+let pendingAt = null; // 지금 받는 중인 좌표 (좌표를 정하기 전이면 null)
+let again = false; // 폴백 좌표로 받는 중에 위치가 왔다 → 끝나면 한 번 더
 
 // ---------- WMO 날씨 코드 → 아이콘·텍스트 ----------
 // 아이콘만으로 정보를 전하지 않는다: 이모지는 aria-hidden이고 옆의 텍스트가 같은 뜻을 전한다.
@@ -69,9 +71,14 @@ async function fallbackPoint() {
   return { lat: Number(center[0]), lng: Number(center[1]), fallback: true };
 }
 
-/** 지금 쓸 좌표. 현재 위치(js/geo.js) 우선, 없으면 제주 center */
+/**
+ * 지금 쓸 좌표. 현재 위치(js/geo.js) 우선, 없으면 제주 center.
+ * 위치를 아직 모르면 geo.ensurePosition()을 기다린다 — 앱을 막 열었을 때 바로 폴백으로 부르면
+ * 위치를 허용한 사용자도 늘 "제주 기준" 날씨를 먼저 보게 된다 (홈의 위치 요청과 pending을 공유하므로
+ * 요청이 늘지 않고, 거부·무시된 상태면 즉시 null이 와서 바로 폴백한다. 최대 GEO_TIMEOUT_MS).
+ */
 async function point() {
-  const p = getPosition();
+  const p = getPosition() || (await ensurePosition().catch(() => null));
   if (p) return { lat: p.lat, lng: p.lng, fallback: false };
   return fallbackPoint();
 }
@@ -147,6 +154,7 @@ function paint(wx, at) {
 
 async function load() {
   const at = await point();
+  pendingAt = at;
   if (!at) return hide();
   try {
     const wx = await fetchWeather(at);
@@ -164,8 +172,12 @@ function refresh(force = false) {
   if (!force && now - lastOkAt < WEATHER_REFRESH_MS) return;
   if (!force && now - lastTryAt < WEATHER_RETRY_MS) return; // 실패 직후 반복 호출 방지
   lastTryAt = now;
+  again = false;
+  pendingAt = null;
   inflight = load().finally(() => {
     inflight = null;
+    pendingAt = null;
+    if (again && active) refresh(true);
   });
 }
 
@@ -174,7 +186,14 @@ function refresh(force = false) {
  * 홈이 보이는 동안만, 그리고 위치가 실제로 달라졌을 때만이라 호출이 늘어나지 않는다.
  */
 function onGeo(p) {
-  if (!active || !p || !shownAt) return;
+  if (!active || !p) return;
+  // 폴백 좌표로 받는 중에 위치가 왔다: 끝나면 실제 위치로 한 번 더 (예전엔 이 경우를 놓쳐 폴백이 그대로 남았다)
+  // (좌표를 정하기 전, 즉 위치를 기다리는 중이면 point()가 이 위치를 그대로 쓰므로 아무것도 안 한다)
+  if (inflight) {
+    if (pendingAt?.fallback) again = true;
+    return;
+  }
+  if (!shownAt) return;
   const moved = distanceM(shownAt.lat, shownAt.lng, p.lat, p.lng) > 20000;
   if (!shownAt.fallback && !moved) return;
   refresh(true);

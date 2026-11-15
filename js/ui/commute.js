@@ -44,6 +44,32 @@ function historyDots() {
   );
 }
 
+/** 분 → "1시간 5분" / "25분" */
+const fmtSpan = (min) => {
+  const hr = Math.floor(min / 60);
+  const m = min % 60;
+  return hr ? (m ? `${hr}시간 ${m}분` : `${hr}시간`) : `${m}분`;
+};
+
+/**
+ * 탑승 완료 전: 목표 시간까지 남은/지난 시간 (분 단위).
+ * 판정(commute.checkIn)이 "HH:MM" 분 단위 비교라 같은 기준으로 센다 — 목표와 같은 분이면 아직 무지각.
+ */
+function leftText(targetTime, now = new Date()) {
+  const diff = commute.minutesOf(targetTime) - (now.getHours() * 60 + now.getMinutes());
+  if (diff > 0) return { late: false, text: `목표 시간까지 ${fmtSpan(diff)} 남았어요` };
+  if (diff === 0) return { late: false, text: "지금이 목표 시각이에요 · 지금 타면 무지각" };
+  return { late: true, text: `목표 시간이 ${fmtSpan(-diff)} 지났어요` };
+}
+
+/** .cm-left 문구 갱신. 바뀔 때만 DOM을 고친다 (1초 tick에서 호출) */
+function paintLeft(node, targetTime, now) {
+  const { late, text } = leftText(targetTime, now);
+  if (node.textContent === text) return;
+  node.textContent = text;
+  node.classList.toggle("late", late);
+}
+
 /** 오늘 기록 → 화면 문구. 시각이 없는 옛 기록·쉬는 날은 시각 없이 */
 function resultText({ result, time }) {
   if (result === "off") return "오늘은 쉬는 날로 기록했어요";
@@ -68,6 +94,8 @@ function render() {
   shownDate = commute.dateKey(now);
   const today = commute.todayResult(now);
 
+  const left = today ? null : h("p", { class: "cm-left", "data-target": state.targetTime });
+  if (left) paintLeft(left, state.targetTime, now);
   const nodes = [
     // F-CM4: 연속 무지각 일수 + 옆에 최근 기록 5개 동그라미
     h("div", { class: "cm-head" }, h("p", { class: "cm-streak" }, streakText(state.streak)), historyDots()),
@@ -77,6 +105,8 @@ function render() {
   } else {
     nodes.push(
       h("p", { class: "cm-target" }, `오늘 목표 ${state.targetTime}까지 탑승하면 무지각이에요`),
+      // 탑승 완료 전에만: 목표까지 남은 시간 / 지난 시간 (syncCommute가 1초마다 갱신)
+      left,
       h(
         "div",
         { class: "cm-actions" },
@@ -114,12 +144,15 @@ export function initCommute(node) {
 }
 
 /**
- * 날짜가 바뀌었으면 다시 그린다 (홈을 열어 둔 채 자정을 넘긴 경우).
+ * 날짜가 바뀌었으면 다시 그린다 (홈을 열어 둔 채 자정을 넘긴 경우). 남은/지난 시간 문구도 여기서 갱신.
  * home.js의 1초 tick에서 부르지만 날짜 문자열 비교뿐이라 거의 비용이 없다.
  */
 export function syncCommute() {
   if (!el || el.hidden || !shownDate) return;
-  if (shownDate !== commute.dateKey()) render();
+  const now = new Date();
+  if (shownDate !== commute.dateKey(now)) return render();
+  const left = el.querySelector(".cm-left");
+  if (left) paintLeft(left, left.dataset.target, now);
 }
 
 // ---------- 설정 화면 (F-CM1) ----------

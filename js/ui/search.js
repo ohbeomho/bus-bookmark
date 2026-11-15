@@ -12,7 +12,8 @@ const norm = (s) => String(s).replace(/\s+/g, "").toLowerCase();
 let input, box, opts, timer;
 
 /**
- * opts: { getOrigin() → {lat, lng, label}, cityName(code), onPick(row), canSearch() → 안내 문구 | "" }
+ * opts: { getOrigin() → {lat, lng, label}, cityName(code), onPick(row), canSearch() → 안내 문구 | "",
+ *         keepOpen: [Element] — 눌러도 "바깥"으로 치지 않을 요소 (예: 목록 버튼) }
  */
 export function initSearch(form, resultsEl, options) {
   input = form.querySelector("input");
@@ -28,6 +29,16 @@ export function initSearch(form, resultsEl, options) {
     clearTimeout(timer);
     timer = setTimeout(run, DEBOUNCE_MS);
   });
+  // F-M7: 목록·검색 결과 패널 밖(지도 등)을 누르면 닫는다. 검색창·패널 안·keepOpen 요소는 제외.
+  // capture 단계에서 보므로 Leaflet이 지도 이벤트를 막아도 받는다
+  const inside = (t) => box.contains(t) || form.contains(t) || (opts.keepOpen || []).some((k) => k?.contains(t));
+  document.addEventListener(
+    "pointerdown",
+    (e) => {
+      if (!box.hidden && !inside(e.target)) closeResults();
+    },
+    true
+  );
   for (const el of [input, box]) {
     el.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && !box.hidden) {
