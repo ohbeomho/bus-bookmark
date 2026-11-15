@@ -2,28 +2,40 @@
 /**
  * 정류장 타일 빌드 스크립트 (Phase 1). 배포 대상 아님. Node 22+, 외부 의존성 없음.
  *
+ * ===== 지원 지역 (PRD v0.5, 4.4절): 제주 전용 =====
+ *   SUPPORTED_CITY_CODES 상수(현재 [39] = 제주)에 있는 cityCode의 CSV 행만 타일로 만든다.
+ *   이 필터는 기존 정책 1·2보다 먼저 적용한다 (아래 "처리 순서" 참고). 다른 지역을 다시 지원하려면
+ *   이 배열에 cityCode를 추가하면 되고, 정책 1·2 코드는 손대지 않아도 된다.
+ *   서울은 TAGO와 다른 별도 API를 쓰므로 이 스크립트 대상이 아니다 (feature/seoul-support 브랜치 참고).
+ *
  * 사용법
  *   node scripts/build-tiles.js [csv경로] [--refresh-cities]
  *     csv경로           기본값 data/raw/국토교통부_전국 버스정류장 위치정보.csv
  *     --refresh-cities  TAGO 도시코드 목록 API(getCtyCodeList)를 호출해 data/cities.json의
- *                       지원 도시 목록을 갱신한다. 서비스키는 환경변수 OPEN_API_KEY 또는
- *                       루트 .env의 OPEN_API_KEY(Decoding 키)에서만 읽고 어디에도 기록하지 않는다.
+ *                       지원 도시 목록(= 정책 2가 쓰는 "TAGO가 지원하는 전체 도시" 목록)을 갱신한다.
+ *                       서비스키는 환경변수 OPEN_API_KEY 또는 루트 .env의 OPEN_API_KEY(Decoding 키)에서만
+ *                       읽고 어디에도 기록하지 않는다. data/cities.json에는 이 중 SUPPORTED_CITY_CODES에
+ *                       있는 도시만 최종적으로 남는다 (아래 6번 단계).
  *   평소 실행은 API를 호출하지 않고 data/cities.json의 지원 도시 목록을 입력으로 쓴다.
  *
  * 입력 CSV: EUC-KR(CP949), 따옴표 포함 CSV, 9컬럼
  *   정류장번호,정류장명,위도,경도,정보수집일,모바일단축번호,도시코드,도시명,관리도시명
  *   (관리도시명은 부정확하므로 쓰지 않는다. 도시 연결은 도시코드로만 한다.)
  *
- * 정책 A(=정책 2): TAGO 도착정보 API가 지원하지 않는 도시코드(data/cities.json 기준, 서울 11 포함 23개)의
- *   정류장은 타일에서 전부 제외한다.
- *
- * 정책 1 (중복 정류장, docs/phase0-findings.md "중복 정류장 검증" 참고): 이름이 같고 좌표를 소수 4자리로
+ * ===== 처리 순서 =====
+ *   0) SUPPORTED_CITY_CODES 필터: 지금 범위에서 타일로 만들 cityCode만 남긴다 (현재 제주 하나).
+ *      그 위에 아래 정책 1·2를 그대로 적용한다 (다른 지역을 다시 켤 때 정책 코드가 그대로 남아있게 하기 위함).
+ *   정책 1 (중복 정류장, docs/phase0-findings.md "중복 정류장 검증" 참고): 이름이 같고 좌표를 소수 4자리로
  *   반올림했을 때 같은(= 사실상 같은 위치) 행이 nodeId·cityCode만 다르게 여러 개 있는 경우가 있다
  *   (예: 대구/경산 BIS가 같은 정류장을 각자 등록). 이런 중복 그룹에서는 "자신의 cityCode의 주류 nodeId
- *   접두사"와 "자신의 nodeId 접두사"가 일치하는 행만 남기고 나머지는 제외한다. 주류 접두사는 CSV 전체
- *   (정제는 됐지만 도시 지원 여부로 거르기 전)에서 cityCode별 접두사 최빈값으로 계산한다. 그룹 크기가
+ *   접두사"와 "자신의 nodeId 접두사"가 일치하는 행만 남기고 나머지는 제외한다. 주류 접두사는 0단계로
+ *   거른(=현재는 제주만 남은) 데이터에서 cityCode별 접두사 최빈값으로 계산한다. 그룹 크기가
  *   1인(중복이 없는) 행은 접두사 일치 여부와 무관하게 그대로 둔다. 제외된 행은 data/excluded-stops.json에
  *   이유와 함께 남긴다.
+ *
+ * 정책 2: TAGO 도착정보 API가 지원하지 않는 도시코드(data/cities.json 기준)의 정류장은 타일에서 전부
+ *   제외한다. SUPPORTED_CITY_CODES가 TAGO 지원 도시만 포함하는 한(현재 제주) 이 정책은 실제로는 아무
+ *   행도 걸러내지 않지만, 다른 지역을 다시 켰을 때를 대비해 코드는 남겨둔다.
  *
  * ===== 타일 파일명 규칙 (프론트엔드 tiles.js가 동일하게 계산해야 함) =====
  *   격자 크기 0.05도. 파일명은 "격자 인덱스"이며 좌표 문자열이 아니므로 부동소수 오차가 없다.
@@ -58,6 +70,10 @@ const GRID_DEG = 0.05;
 const GRID_E6 = 50000; // 0.05도 = 50000 마이크로도
 const KOREA = { latMin: 33, latMax: 39, lngMin: 124, lngMax: 132 };
 const EXPECTED_HEADER = ['정류장번호', '정류장명', '위도', '경도', '정보수집일', '모바일단축번호', '도시코드', '도시명', '관리도시명'];
+
+// 지금 범위에서 타일로 만들 cityCode (PRD v0.5, 4.4절: 제주 전용). 다른 지역을 다시 지원하려면
+// 이 배열에 cityCode를 추가한다 (정책 1·2 코드는 그대로 둔 채 이 상수만 바꾸면 된다).
+const SUPPORTED_CITY_CODES = [39]; // 39 = 제주
 
 // ---------- 유틸 ----------
 function die(msg) {
@@ -218,11 +234,12 @@ async function main() {
   }
   console.log('인코딩 확인: EUC-KR 디코딩 정상, 헤더 일치, 데이터 ' + rows.length + '행, 해석 불가 문자 포함 행 ' + badLines + '개(해당 문자는 이름에서 제거)');
 
-  // 3) 기본 정제 (좌표·nodeId 등). 도시 지원 여부(정책 2)와는 무관하게 CSV 전체를 정리한다 —
-  //    정책 1의 주류 접두사는 "CSV 전체"로 계산해야 하기 때문이다.
-  const removed = { 컬럼수오류: 0, 좌표누락: 0, 좌표0: 0, 한국범위밖: 0, nodeId누락: 0, nodeId중복: 0 };
+  // 3) 기본 정제 (좌표·nodeId 등). SUPPORTED_CITY_CODES 필터(3-0단계) 전에 CSV 전체를 정리한다 —
+  //    좌표·nodeId 오류 등은 지역과 무관하게 걸러내고, 지역 필터는 그 다음에 적용한다.
+  const removed = { 컬럼수오류: 0, 좌표누락: 0, 좌표0: 0, 한국범위밖: 0, nodeId누락: 0, nodeId중복: 0, 대상지역외: 0 };
   const seen = new Set();
-  const cleaned = []; // {id,name,latE6,lngE6,ars,city,prefix}
+  const supportedCitySet = new Set(SUPPORTED_CITY_CODES);
+  const cleanedAll = []; // {id,name,latE6,lngE6,ars,city,prefix} (대상 지역 필터 전)
   let latestDate = '';
 
   for (const r of rows) {
@@ -240,16 +257,24 @@ async function main() {
     seen.add(id);
 
     const date = r[4].trim();
-    if (date > latestDate) latestDate = date;
     const city = Number(r[6].trim());
     let ars = r[5].trim();
     if (ars === '0') ars = '';
     const latE6 = Math.round(lat * 1e6), lngE6 = Math.round(lng * 1e6);
-    const name = r[1].replace(/\uFFFD/g, '').trim();
-    cleaned.push({ id, name, latE6, lngE6, ars, city, prefix: nodeIdPrefix(id) });
+    const name = r[1].replace(/�/g, '').trim();
+    cleanedAll.push({ id, name, latE6, lngE6, ars, city, prefix: nodeIdPrefix(id), date });
   }
 
-  // 3-1) 정책 1: 도시코드별 nodeId 주류 접두사 (CSV 전체 기준, 최빈값. 동점이면 접두사 문자열 오름차순으로 고정).
+  // 3-0) SUPPORTED_CITY_CODES 필터 (현재 제주만). 이 아래 정책 1·2는 이 필터를 거친 데이터에만 적용된다.
+  //      수집일(latestDate)도 대상 지역 행만으로 계산한다.
+  const cleaned = [];
+  for (const s of cleanedAll) {
+    if (!supportedCitySet.has(s.city)) { removed.대상지역외++; continue; }
+    if (s.date > latestDate) latestDate = s.date;
+    cleaned.push(s);
+  }
+
+  // 3-1) 정책 1: 도시코드별 nodeId 주류 접두사 (SUPPORTED_CITY_CODES 필터를 거친 데이터 기준, 최빈값. 동점이면 접두사 문자열 오름차순으로 고정).
   const cityPrefixCounts = new Map(); // city -> Map(prefix -> count)
   for (const s of cleaned) {
     if (!cityPrefixCounts.has(s.city)) cityPrefixCounts.set(s.city, new Map());
@@ -357,8 +382,10 @@ async function main() {
   };
   fs.writeFileSync(path.join(TILES_DIR, 'index.json'), JSON.stringify(index) + '\n');
 
-  // 6) cities.json (지원 도시 + bbox: [south, west, north, east])
-  const cities = [...supported.entries()].sort((a, b) => a[0] - b[0]).map(([code, name]) => {
+  // 6) cities.json: SUPPORTED_CITY_CODES(현재 제주만)에 해당하는 도시만 남긴다 (+ bbox: [south, west, north, east]).
+  //    supported(전체 TAGO 지원 도시 목록, 정책 2용)에서 지금 범위에 해당하는 도시만 추려 쓴다.
+  const cities = [...supported.entries()].filter(([code]) => supportedCitySet.has(code))
+    .sort((a, b) => a[0] - b[0]).map(([code, name]) => {
     const pts = cityPts.get(code);
     if (!pts) return { code, name, stopCount: 0, bbox: null, center: null };
     const r = robustBox(pts);

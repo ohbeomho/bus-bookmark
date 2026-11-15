@@ -23,7 +23,7 @@
 | `scripts/` | 데이터·아이콘 생성 스크립트 (배포 대상 아님) |
 | `vercel.json`, `.vercelignore` | Vercel 헤더(CSP·캐시)와 배포 제외 목록 |
 
-지원 지역은 TAGO와 연계된 지자체(138개 도시)입니다. **서울은 지원하지 않습니다.** 주 사용 지역은 대전·제주입니다.
+지원 지역은 **제주(cityCode 39) 하나**입니다(PRD v0.5, 4.4절). 다른 TAGO 지역·서울(별도 API)은 보류 상태이며, 조사·구현은 `feature/seoul-support` 브랜치와 `docs/phase0-findings.md`·`docs/phase0-seoul-findings.md`에 남아 있습니다.
 
 ## 로컬 실행
 
@@ -63,7 +63,7 @@ npx wrangler deploy
    node scripts/build-tiles.js --refresh-cities  # TAGO 도시코드 목록도 다시 받을 때 (.env의 OPEN_API_KEY 필요)
    ```
 3. `data/tiles/`, `data/tiles/index.json`, `data/cities.json`, `data/excluded-stops.json`이 갱신됩니다. `index.json`의 `version`이 바뀌면 앱이 기존 타일 캐시를 버리고 새로 받습니다.
-   - 타일에서 제외되는 행은 두 가지입니다: **정책 1**(같은 이름·좌표인데 nodeId/cityCode만 다른 중복 그룹에서, 자신의 cityCode 주류 nodeId 접두사와 다른 행), **정책 2**(`data/cities.json`에 없는 cityCode, 서울 11 포함). 제외된 행 전체 목록은 `data/excluded-stops.json`에 남습니다(배포 대상 아님, `.vercelignore` 참고). 근거는 [`docs/phase0-findings.md`](docs/phase0-findings.md)의 "중복 정류장 검증" 절 참고.
+   - 스크립트는 먼저 `SUPPORTED_CITY_CODES` 상수(현재 `[39]`, 제주만)로 CSV 행을 지역 필터링한 뒤, 그 위에 두 가지 제외 정책을 적용합니다: **정책 1**(같은 이름·좌표인데 nodeId/cityCode만 다른 중복 그룹에서, 자신의 cityCode 주류 nodeId 접두사와 다른 행), **정책 2**(`data/cities.json`에 없는 cityCode — 지금은 `SUPPORTED_CITY_CODES`가 이미 TAGO 지원 도시만 가리켜 실제로 걸러지는 행은 없지만, 다른 지역을 다시 지원할 때를 대비해 코드는 남겨둡니다). 제외된 행 전체 목록은 `data/excluded-stops.json`에 남습니다(배포 대상 아님, `.vercelignore` 참고). 근거는 [`docs/phase0-findings.md`](docs/phase0-findings.md)의 "중복 정류장 검증" 절 참고.
 
 아이콘을 다시 만들 때는 `node scripts/build-icons.js`를 실행합니다.
 
