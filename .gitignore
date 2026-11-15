@@ -164,3 +164,6 @@ data/raw/
 .vercel/
 .vercel
 .env*
+
+# QA 스크린샷이 루트에 떨어져도 커밋되지 않게 (아이콘은 icons/ 아래)
+/*.png
