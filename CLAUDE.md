@@ -6,7 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 버스 즐겨찾기 PWA — 자주 타는 정류장·노선만 즐겨찾기해 두고 도착 정보를 바로 보는 모바일 웹앱. 전체 요구사항은 `버스즐겨찾기_PWA_PRD.md`(v0.3)가 기준 문서이며, 기능 ID(F-H1, F-M4, P-2 등)와 우선순위(P0/P1/P2)는 여기서 정의된다.
 
-현재는 초기 단계로 `worker/worker.js`(Cloudflare Worker 프록시)만 구현되어 있다. 프론트엔드, `wrangler.jsonc`, 타일 전처리 스크립트는 아직 없으며 PRD 8장의 폴더 구조를 따라 만들 예정이다. git 저장소도 아직 아니다.
+Phase 0(API 검증)~Phase 3(PWA)가 전부 끝난 상태다. 프론트엔드 MVP(홈·지도·검색), `worker/`, 타일 데이터(`data/tiles/`, `data/cities.json`), 서비스워커가 모두 구현돼 있다. 지원 지역은 TAGO 버스도착정보 API가 지원하는 138개 도시 코드뿐이며, **서울특별시는 현재 미지원**이다(아래 "서울 지원" 절 참고). 주로 쓰는 지역은 대전·제주다.
+
+- **타일 데이터 제외 정책** (`scripts/build-tiles.js`): 전국 CSV 227,102행 중 두 가지를 제외하고 208,269개만 타일에 들어간다 — ① TAGO 도시코드 목록(`data/cities.json`)에 없는 23개 cityCode(서울 11 포함, 도착정보가 항상 0건으로 와서 의미 없음), ② 같은 이름·좌표인데 nodeId 접두사가 자신의 cityCode 주류 접두사와 다른 중복 행(다른 도시 BIS가 중복 등록한 것으로 추정). 제외 내역은 `data/excluded-stops.json`(배포 대상 아님, git 추적은 함). 근거는 `docs/phase0-findings.md`.
+- **노선 유형별 색상** (`js/ui/home.js`의 `routeTypeClass`/`routeNoChip`, `css/style.css`의 `--rt-*`): 간선(파랑)·지선(초록, 외곽버스 포함)·급행(빨강)은 대전·제주 실제 버스 도색과 맞춘 색이다. 마을(주황)·좌석(청록)은 실제 도색이 아니라 구분용 임의 배색이다 — 마을버스는 업체마다, 좌석버스는 지역마다 색이 달라 전국 공통 색이 없다(대전·제주 데이터에서 좌석버스가 관측된 적도 없음).
 
 ## 아키텍처
 
@@ -35,6 +38,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **서비스워커(`sw.js`) 버전 관리**: 앱 파일(`index.html`, `css/`, `js/`, `icons/`, `manifest.webmanifest`)을 바꾸면 `sw.js`의 `VERSION`을 올린다 — 안 올리면 설치한 사용자는 옛 파일을 계속 본다. `js/`에 모듈을 추가·삭제하면 `sw.js`의 `SHELL` 목록도 고친다 (없는 파일이 있으면 install이 실패해 옛 버전이 유지됨).
 - 정류장 타일(`data/tiles/*`)은 `js/tiles.js`가 IndexedDB에 `index.json` 버전과 함께 저장하므로 SW가 캐시하지 않는다. 앱 셸은 프리캐시, Leaflet CDN·OSM 지도 이미지(최대 200장)는 런타임 캐시.
 - CSP `connect-src`는 SW의 fetch에도 적용되므로, SW가 새 출처를 가져오려면 `vercel.json`에도 그 출처를 넣는다.
+
+## 서울 지원 (진행 중)
+
+서울은 TAGO 버스도착정보 API 목록에 없어(cityCode 11 호출 시 오류 없이 0건만 옴) 지금까지 타일·도착정보 양쪽에서 제외돼 있었다. 서울을 지원하려면 **TAGO와 다른 별도 API**를 써야 하고, 그 API는 정류장 기준 호출 구조가 TAGO와 다르다.
+
+- 서비스: `서울특별시_버스도착정보조회 서비스` (data.go.kr/data/15000314), 엔드포인트는 `apis.data.go.kr`가 아니라 별도 호스트 `http://ws.bus.go.kr/api/rest/arrive/`. 서비스키는 루트 `.env`의 `OPEN_API_KEY`(공공데이터포털 키는 데이터셋이 아니라 계정 단위로 발급되므로 TAGO와 같은 키를 쓸 수 있을 것으로 추정 — 확인 필요)로 호출한다. 정류장 CSV는 `data/raw/서울시 버스정류소 위치정보.csv`(서울 열린데이터광장, 전국 CSV와 컬럼이 다름: `노드ID,정류소번호,정류소명,X좌표,Y좌표,정류소 타입`)에 받아뒀다.
+- **오퍼레이션 4개뿐이고, 정류장 ID 하나로 전체 노선 도착정보를 받는 오퍼레이션이 없다**(`getLowArrInfoByStId`만 정류장 ID 하나로 되지만 저상버스 전용). 일반 버스까지 포함한 전체 노선을 보려면 ① 정류소별 경유 노선 목록 조회(`stationinfo/getStationByUid`, 별도 API) → ② 노선마다 `arrive/getArrInfoByRoute`(stId+busRouteId+ord 필요)를 각각 호출해야 한다. 즉 **정류장 하나당 호출이 1회가 아니라 "노선 수 + 1"회**가 된다 — CLAUDE.md의 핵심 호출 절약 원칙(정류장별 목록 API 1회)과 정면으로 충돌하고, 공유 한도 소모가 지역별로 다를 수 있다는 뜻이다.
+- 실제 호출(serviceKey로 `ws.bus.go.kr` 응답 확인, `stationinfo/getStationByUid`의 응답 필드 중 노선 순번 `ord` 존재 여부 등)은 아직 검증 전이다. 서울 지원 작업은 TAGO 때처럼 **api-verifier로 Phase 0 검증부터** 하고(`docs/phase0-seoul-findings.md` 등 별도 문서), 그 결과를 보고 Worker 라우팅·호출 절약 전략을 다시 설계한다.
+- 타일: 서울 정류장은 전국 CSV가 아니라 위 서울 전용 CSV에서 만들어야 하고(전국 CSV의 서울 행은 nodeId가 TAGO용이 아니라 이 작업과 무관), `정류소번호`를 서울 API의 `stId`/`arsId`로 쓸 수 있는지도 검증 대상이다.
 
 ## 로컬 개발
 
