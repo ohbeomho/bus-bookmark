@@ -585,7 +585,6 @@ function routeRow(key, route, arr, st, fav, label, opts = {}) {
   } else {
     eta = h("span", { class: "eta none" }, st.result ? "도착 정보 없음" : st.loading ? "불러오는 중" : "—");
   }
-  const group = fav && route.groupId ? store.getGroup(route.groupId) : null;
   return h(
     "li",
     { class: "route" + (fav ? " fav" : "") + (opts.best ? " group-top" : "") },
@@ -593,8 +592,8 @@ function routeRow(key, route, arr, st, fav, label, opts = {}) {
       "span",
       { class: "route-id" },
       routeNoChip(route),
-      label && h("span", { class: "route-tp" }, label),
-      group && h("span", { class: "route-group" }, group.name)
+      label && h("span", { class: "route-tp" }, label)
+      // 그룹명은 같은 줄의 그룹 선택지에 이미 보이므로 번호 밑에 따로 적지 않는다 (v0.6)
     ),
     eta,
     arr?.prevStations != null && h("span", { class: "stations" }, `${arr.prevStations}정거장 전`),

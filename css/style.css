@@ -392,7 +392,6 @@ button.pause-note { cursor: pointer; }
 .depart.warn { color: var(--danger); }
 
 /* 그룹 (F-G1·F-G2) */
-.route-group { font-size: .75rem; font-weight: 700; color: var(--accent); }
 .group-badge {
   order: 2;
   align-self: center;
