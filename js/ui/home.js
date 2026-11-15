@@ -768,13 +768,13 @@ const ROUTE_TYPE_RULES = [
   [/마을/, "village"], // 근사 배색 (주황) — 실제는 적색+노란색+흰색 다색
 ];
 /**
- * 제주 노선 번호대 → 색상 카테고리 (v0.6: 사용자가 정한 번호대, API routetp보다 우선).
- * JEJU_NO_RULES: 100번대=지선, 200·400번대=간선, 300번대=급행, 800번대=관광순환 — 실제 Worker 호출로도
- *   확인된 값이다(2026-11-15, 제주시청 정류장 샘플, 810·820 관광순환).
- * JEJU_NO_GUESS: 500·600·700번대는 미확인 추정치 → routetp가 있으면 그쪽이 먼저, 없을 때만 쓴다.
+ * 제주 노선 번호대 → 색상 카테고리 (v0.6, 사용자 지정 — API routetp보다 우선).
+ * JEJU_NO_RULES: 100번대=급행(빨강), 200·300·500번대=간선(파랑), 400·600·700번대=지선(초록).
+ *   이 번호대만 번호로 판별한다 (예전 Worker 샘플 관측값과 달라도 사용자 지정이 기준).
+ * JEJU_NO_GUESS: 그 밖의 번호대는 routetp가 먼저고, 없을 때만 쓴다 (800번대 = 관광순환 810·820).
  */
-const JEJU_NO_RULES = { 1: "branch", 2: "trunk", 3: "express", 4: "trunk", 8: "circular" };
-const JEJU_NO_GUESS = { 5: "trunk", 6: "branch", 7: "branch" };
+const JEJU_NO_RULES = { 1: "express", 2: "trunk", 3: "trunk", 5: "trunk", 4: "branch", 6: "branch", 7: "branch" };
+const JEJU_NO_GUESS = { 8: "circular" };
 
 /** 노선 번호 → 백의 자리. 숫자만으로 된 번호가 아니거나 100 미만이면 null */
 function routeHundred(routeNo) {
@@ -793,7 +793,7 @@ export function routeTypeClass(routeType, routeNo) {
   if (t) {
     for (const [re, kind] of ROUTE_TYPE_RULES) if (re.test(t)) return kind;
   }
-  // 3) 그것도 없으면 미확인 번호대 추정치
+  // 3) 그것도 없으면 번호대 추정치 (800번대 관광순환)
   return JEJU_NO_GUESS[hundred] || "";
 }
 

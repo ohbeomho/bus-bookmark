@@ -15,7 +15,7 @@
 //  - 날씨 (api.open-meteo.com, F-WX1)       : 가로채지 않는다. 실패하면 홈의 날씨 영역이 그냥 숨겨지면 된다
 //                                             (옛 기온을 캐시에서 보여 주는 쪽이 더 나쁘다)
 
-const VERSION = "v12";
+const VERSION = "v13";
 const PREFIX = "bus-bookmark-";
 const SHELL_CACHE = `${PREFIX}shell-${VERSION}`;
 const DATA_CACHE = `${PREFIX}data-v1`; // cities.json (버전 독립. 항상 네트워크 우선이라 옛것이 남아도 폴백으로만 쓴다)
