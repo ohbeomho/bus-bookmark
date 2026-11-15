@@ -753,7 +753,7 @@ export function routeLabels(routes) {
  * 모르는 유형·빈 값은 ""(기본 글자색). 색은 장식일 뿐이고 번호·유형 라벨 글자가 정보를 전한다.
  *
  * 지금 앱은 제주만 지원한다(v0.5). trunk(파랑)·branch(초록)·express(빨강)는 제주 실제 도색과
- * 그대로 일치한다(간선 200~300번대 파랑, 지선 400/600/700번대 초록, 급행 100번대 빨강).
+ * 그대로 일치한다. 단, 번호대 분류(JEJU_NO_RULES)가 이 문구 규칙보다 먼저다 (v0.6, routeTypeClass 참고).
  * circular(노랑)도 제주 관광순환버스(810·820번)의 실제 도색이다.
  * village(주황)는 실제 도색(적색+노란색+흰색 다색)을 정확히 재현하진 못하지만 가장 가까운
  * 단색 근사치이고, seat(청록)는 제주에서 관측된 적 없는 유형이라 임의 배색일 뿐이다
@@ -768,29 +768,33 @@ const ROUTE_TYPE_RULES = [
   [/마을/, "village"], // 근사 배색 (주황) — 실제는 적색+노란색+흰색 다색
 ];
 /**
- * 제주 노선 번호 → 색상 카테고리 (routeType 문자열로 못 가를 때만 쓰는 보조 분류).
- * 100번대=지선, 200·300·400번대=간선·급행 혼재, 800번대=관광순환 — 실제 Worker 호출로 확인된
- * 값(2026-11-15, 제주시청 정류장 샘플): 100번대 지선버스, 200·400번대 간선버스, 300번대 급행버스.
- * 500·600·700번대는 이 샘플에 없어 미확인(간선·지선으로 추정만). 제주 전용 휴리스틱이라
- * 숫자 자체가 아니라 `routetp`가 우선이다 — API가 유형을 주면 이 폴백은 안 쓰인다.
+ * 제주 노선 번호대 → 색상 카테고리 (v0.6: 사용자가 정한 번호대, API routetp보다 우선).
+ * JEJU_NO_RULES: 100번대=지선, 200·400번대=간선, 300번대=급행, 800번대=관광순환 — 실제 Worker 호출로도
+ *   확인된 값이다(2026-11-15, 제주시청 정류장 샘플, 810·820 관광순환).
+ * JEJU_NO_GUESS: 500·600·700번대는 미확인 추정치 → routetp가 있으면 그쪽이 먼저, 없을 때만 쓴다.
  */
-function routeNoFallback(routeNo) {
-  const n = parseInt(String(routeNo ?? "").replace(/\D/g, ""), 10);
-  if (!Number.isFinite(n)) return "";
-  const hundred = Math.floor(n / 100);
-  if (hundred === 3) return "express"; // 확인됨
-  if (hundred === 2 || hundred === 4 || hundred === 5) return "trunk"; // 2·4 확인됨, 5는 미확인 추정
-  if (hundred === 1 || hundred === 6 || hundred === 7) return "branch"; // 1 확인됨, 6·7은 미확인 추정
-  if (hundred === 8) return "circular"; // 810·820 확인됨
-  return "";
+const JEJU_NO_RULES = { 1: "branch", 2: "trunk", 3: "express", 4: "trunk", 8: "circular" };
+const JEJU_NO_GUESS = { 5: "trunk", 6: "branch", 7: "branch" };
+
+/** 노선 번호 → 백의 자리. 숫자만으로 된 번호가 아니거나 100 미만이면 null */
+function routeHundred(routeNo) {
+  const s = String(routeNo ?? "").trim();
+  if (!/^\d+$/.test(s)) return null; // "급행1" 같은 문자열 번호는 번호대 분류를 하지 않는다
+  const n = Number(s);
+  return n >= 100 ? Math.floor(n / 100) : null;
 }
 
 export function routeTypeClass(routeType, routeNo) {
+  const hundred = routeHundred(routeNo);
+  // 1) 정해진 번호대가 최우선 (API 유형 문구가 달라도 번호대로 칠한다)
+  if (JEJU_NO_RULES[hundred]) return JEJU_NO_RULES[hundred];
+  // 2) 그 밖의 번호는 API 유형 문구
   const t = String(routeType || "").replace(/\s+/g, "");
   if (t) {
     for (const [re, kind] of ROUTE_TYPE_RULES) if (re.test(t)) return kind;
   }
-  return routeNoFallback(routeNo);
+  // 3) 그것도 없으면 미확인 번호대 추정치
+  return JEJU_NO_GUESS[hundred] || "";
 }
 
 /** 노선 번호 칩 (유형별 색). 홈 카드와 지도 바텀시트가 같이 쓴다 */
