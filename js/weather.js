@@ -95,6 +95,7 @@ async function fetchWeather({ lat, lng }) {
     if (!res.ok) throw new Error(`http ${res.status}`);
     const j = await res.json();
     const cur = j?.current;
+    console.log(j);
     const temp = Number(cur?.temperature_2m);
     const code = Number(cur?.weather_code);
     if (!Number.isFinite(temp) || !Number.isFinite(code)) throw new Error("bad payload");
@@ -131,11 +132,13 @@ function paint(wx, at) {
       : null;
   const extras = at.fallback ? [h("span", { class: "wx-where" }, "제주 기준")] : [];
   el.replaceChildren(
-    h("span", { class: "wx-icon", "aria-hidden": "true" }, icon),
-    h("span", { class: "wx-temp" }, `${Math.round(wx.temp)}°C`),
-    h("span", { class: "wx-desc" }, text),
-    tip && h("span", { class: "wx-tip" }, tip),
-    ...extras
+    ...[
+      h("span", { class: "wx-icon", "aria-hidden": "true" }, icon),
+      h("span", { class: "wx-temp" }, `${Math.round(wx.temp)}°C`),
+      h("span", { class: "wx-desc" }, text),
+      tip && h("span", { class: "wx-tip" }, tip),
+      ...extras
+    ].filter(Boolean)
   );
   el.hidden = false;
   shownAt = at;
