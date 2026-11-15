@@ -10,14 +10,15 @@
   --soon: #b3261e;
   --star: #b26a00;
   --danger: #b3261e;
-  /* 노선 유형별 색. trunk/branch/express는 대전·제주 실제 도색(간선 파랑·지선 초록·급행 빨강,
-     외곽버스는 지선과 같은 초록)과 맞춘 색이다. village·seat는 실제 도색이 아니라 구분용 임의
-     배색이다(마을버스는 업체마다, 좌석버스는 지역마다 색이 달라 전국 공통 색이 없음).
+  /* 노선 유형별 색. trunk/branch/express/circular는 제주 실제 도색(간선 파랑·지선 초록·급행 빨강·
+     관광순환 노랑)과 맞춘 색이다. village·seat는 실제 도색이 아니라 구분용 근사/임의 배색이다
+     (마을버스는 실제 적+노랑+흰색 다색이라 단색으로 못 맞춤, 좌석버스는 제주에서 관측된 적 없음).
      글자는 흰 배경 기준 대비 4.5:1 이상, 배경은 옅은 같은 계열 */
-  --rt-trunk-fg: #0b4fa8;   --rt-trunk-bg: #dbe9fb;   /* 간선·일반 */
+  --rt-trunk-fg: #0b4fa8;   --rt-trunk-bg: #dbe9fb;   /* 간선 */
   --rt-branch-fg: #16653a;  --rt-branch-bg: #d8f0e0;  /* 지선·외곽 */
   --rt-express-fg: #b3261e; --rt-express-bg: #fbe0de; /* 급행·광역 */
-  --rt-village-fg: #8a4b00; --rt-village-bg: #fbe7cc; /* 마을·순환 (임의 배색) */
+  --rt-circular-fg: #7a6000; --rt-circular-bg: #fbf0c2; /* 관광순환 (노랑) */
+  --rt-village-fg: #8a4b00; --rt-village-bg: #fbe7cc; /* 마을 (근사 배색) */
   --rt-seat-fg: #0a5b67;    --rt-seat-bg: #d5eef2;    /* 좌석 (임의 배색) */
   --wx-tip-fg: #0b4fa8;     --wx-tip-bg: #dbe9fb;     /* 우산 안내 (F-WX1) */
   --radius: 14px;
@@ -40,6 +41,7 @@
     --rt-trunk-fg: #a7c9ff;   --rt-trunk-bg: #1b3356;
     --rt-branch-fg: #8fdba7;  --rt-branch-bg: #163a27;
     --rt-express-fg: #ff9e95; --rt-express-bg: #4a211e;
+    --rt-circular-fg: #f8df78; --rt-circular-bg: #453c12;
     --rt-village-fg: #f8c178; --rt-village-bg: #432f12;
     --rt-seat-fg: #8ad7e2;    --rt-seat-bg: #103a41;
     --wx-tip-fg: #a7c9ff;     --wx-tip-bg: #1b3356;
@@ -349,6 +351,7 @@ button.pause-note { cursor: pointer; }
 .route-no[data-rtype="trunk"]   { --rt-fg: var(--rt-trunk-fg);   --rt-bg: var(--rt-trunk-bg); }
 .route-no[data-rtype="branch"]  { --rt-fg: var(--rt-branch-fg);  --rt-bg: var(--rt-branch-bg); }
 .route-no[data-rtype="express"] { --rt-fg: var(--rt-express-fg); --rt-bg: var(--rt-express-bg); }
+.route-no[data-rtype="circular"] { --rt-fg: var(--rt-circular-fg); --rt-bg: var(--rt-circular-bg); }
 .route-no[data-rtype="village"] { --rt-fg: var(--rt-village-fg); --rt-bg: var(--rt-village-bg); }
 .route-no[data-rtype="seat"]    { --rt-fg: var(--rt-seat-fg);    --rt-bg: var(--rt-seat-bg); }
 /* 고대비 모드에서는 배경이 무시되므로 테두리로 칩 모양을 남긴다 */
@@ -433,16 +436,7 @@ button.pause-note { cursor: pointer; }
 /* 다른 노선은 작게 */
 .others .route-no { font-size: 1.2rem; }
 .others .eta { font-size: 1.05rem; }
-.others-wrap { margin-top: .25rem; }
-.others-wrap summary {
-  min-height: var(--tap);
-  display: flex;
-  align-items: center;
-  padding: 0 .25rem;
-  color: var(--accent);
-  font-weight: 600;
-  cursor: pointer;
-}
+.others-label { margin: .5rem .25rem .25rem; color: var(--muted); font-weight: 600; font-size: .9rem; }
 
 .note, .hint { margin: .4rem .25rem; color: var(--muted); }
 .note { font-weight: 600; }

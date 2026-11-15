@@ -40,7 +40,6 @@ const INPUT_EVENTS = ["pointerdown", "keydown", "wheel", "touchstart"];
  *         fails: 연속 실패 횟수, lastAttemptAt: 마지막 호출 시도 시각(ms) }
  */
 const state = new Map();
-const openOthers = new Set(); // "다른 노선" 펼친 정류장
 let listEl;
 let active = false; // 홈 탭이 보이고 페이지가 화면에 있음
 let autoTimer = null;
@@ -565,14 +564,7 @@ function card(stop) {
     if (!favs.length) {
       body.append(h("p", { class: "hint" }, "타는 노선의 ☆를 눌러 즐겨찾기하세요. 지금 운행 중인 노선과 전에 본 노선만 보여요."), list);
     } else {
-      const det = h(
-        "details",
-        { class: "others-wrap", open: openOthers.has(key) },
-        h("summary", { "data-fkey": `o:${key}` }, `다른 노선 ${others.length}개`),
-        list
-      );
-      det.addEventListener("toggle", () => (det.open ? openOthers.add(key) : openOthers.delete(key)));
-      body.append(det);
+      body.append(h("p", { class: "others-label" }, `다른 노선 ${others.length}개`), list);
     }
   }
 
@@ -755,19 +747,20 @@ export function routeLabels(routes) {
  * 지역마다 문구가 달라(간선버스/지선버스/급행버스/마을버스/외곽버스, 좌석·광역 등) 부분 일치로 본다.
  * 모르는 유형·빈 값은 ""(기본 글자색). 색은 장식일 뿐이고 번호·유형 라벨 글자가 정보를 전한다.
  *
- * trunk(파랑)·branch(초록)·express(빨강)는 대전·제주 실제 도색(간선 파랑, 지선 초록, 급행 빨강)과
- * 일치시킨 것이다. 대전 외곽버스도 지선버스와 같은 초록 중형차로 운행되므로 branch에 합친다.
- * village(주황)·seat(청록)은 실제 도색을 재현한 게 아니라 구분을 위한 임의 배색이다
- * — 마을버스는 지자체·업체마다 도색이 제각각이고(예: 유성구 자체 도색), 좌석버스는 지역마다
- * 색이 전혀 다르며(부산·대구 빨강, 경기 파랑/빨강, 울산 혼합, 목포 주황 등) 대전·제주 데이터에서
- * 관측된 적도 없다(docs/phase0-findings.md).
+ * 지금 앱은 제주만 지원한다(v0.5). trunk(파랑)·branch(초록)·express(빨강)는 제주 실제 도색과
+ * 그대로 일치한다(간선 200~300번대 파랑, 지선 400/600/700번대 초록, 급행 100번대 빨강).
+ * circular(노랑)도 제주 관광순환버스(810·820번)의 실제 도색이다.
+ * village(주황)는 실제 도색(적색+노란색+흰색 다색)을 정확히 재현하진 못하지만 가장 가까운
+ * 단색 근사치이고, seat(청록)는 제주에서 관측된 적 없는 유형이라 임의 배색일 뿐이다
+ * (대전 등 다른 지역을 다시 지원할 경우를 대비해 남겨둠, docs/phase0-findings.md 참고).
  */
 const ROUTE_TYPE_RULES = [
   [/급행|직행|광역|리무진|공항/, "express"], // 빨강: "좌석급행"도 여기로 (좌석보다 먼저 본다)
-  [/좌석/, "seat"], // 임의 배색 (청록) — 실제 색은 지역마다 다름
-  [/지선|외곽|농어촌|읍면|시외/, "branch"], // 초록: 대전은 외곽버스도 지선과 같은 도색
+  [/좌석/, "seat"], // 임의 배색 (청록) — 제주에서 관측된 적 없음
+  [/지선|외곽|농어촌|읍면|시외/, "branch"], // 초록
   [/간선|일반|시내/, "trunk"], // 파랑
-  [/마을|순환/, "village"], // 임의 배색 (주황) — 실제 색은 업체마다 다름
+  [/순환/, "circular"], // 노랑: 제주 관광순환버스(810·820) 실제 도색 ("마을"보다 먼저 본다)
+  [/마을/, "village"], // 근사 배색 (주황) — 실제는 적색+노란색+흰색 다색
 ];
 export function routeTypeClass(routeType) {
   const t = String(routeType || "").replace(/\s+/g, "");
