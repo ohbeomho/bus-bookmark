@@ -8,13 +8,14 @@
 // - 좌표는 js/geo.js의 현재 위치를 재사용한다 (여기서 Geolocation을 또 요청하지 않는다).
 //   위치를 모르면 data/cities.json의 제주 center로 폴백 (F-L0 기본 위치와 같은 생각).
 //   밖으로 나가는 좌표는 소수점 2자리(약 1km)로 뭉갠다 — 날씨에는 그 정도면 충분하고 정확한 위치를 보낼 이유가 없다.
-// - 실패(네트워크·타임아웃·이상한 응답)는 **조용히 영역을 숨긴다**. 토스트·배너를 띄우지 않는다
-//   (핵심 기능이 아니라서 도착 정보 화면을 방해하면 안 된다).
+// - 실패(네트워크·타임아웃·이상한 응답)하면 영역에 회색 글씨로 실패 문구를 보여 주고, 30초 뒤 **한 번만**
+//   다시 시도한다(v0.6). 토스트·배너는 띄우지 않는다 (핵심 기능이 아니라서 도착 정보 화면을 방해하면 안 된다).
 import { getPosition, ensurePosition, subscribe as subscribeGeo, distanceM } from "./geo.js";
 import {
   OPEN_METEO_URL,
   WEATHER_REFRESH_MS,
   WEATHER_RETRY_MS,
+  WEATHER_RETRY_ONCE_MS,
   WEATHER_TIMEOUT_MS,
   WEATHER_RAIN_PROB,
   FALLBACK_CITY_CODE,
@@ -28,6 +29,9 @@ let inflight = null;
 let lastOkAt = 0; // 마지막 성공 시각
 let lastTryAt = 0; // 마지막 시도 시각 (실패 후 연타 방지)
 let shownAt = null; // 마지막으로 그린 좌표 {lat, lng, fallback}
+let retryTimer = null; // 실패 후 30초 뒤 1회 재시도 타이머
+let retryUsed = false; // 이번 실패에 대해 자동 재시도를 이미 했는지 (성공하면 초기화)
+let retryDue = false; // 재시도 시각이 홈이 안 보일 때 지나갔다 → 다시 보이면 바로 시도
 let pendingAt = null; // 지금 받는 중인 좌표 (좌표를 정하기 전이면 null)
 let again = false; // 폴백 좌표로 받는 중에 위치가 왔다 → 끝나면 한 번 더
 
@@ -108,7 +112,7 @@ function remainingMaxProb(j) {
   return max;
 }
 
-/** Open-Meteo 1회 호출. 실패·타임아웃이면 throw (호출한 쪽이 영역을 숨긴다) */
+/** Open-Meteo 1회 호출. 실패·타임아웃이면 throw (호출한 쪽이 실패 문구를 보여 준다) */
 async function fetchWeather({ lat, lng }) {
   const q = new URLSearchParams({
     latitude: String(round2(lat)),
@@ -142,11 +146,23 @@ async function fetchWeather({ lat, lng }) {
 
 // ---------- 표시 ----------
 
-function hide() {
+/** 실패 문구 (회색 글씨). 에러 배너·토스트 없이 날씨 자리에만 */
+function showFailed() {
   shownAt = null;
   if (!el) return;
-  el.hidden = true;
-  el.replaceChildren();
+  el.replaceChildren(h("span", { class: "wx-fail" }, "날씨 정보를 가져오는 데 실패했습니다"));
+  el.hidden = false;
+}
+
+/** 실패 후 30초 뒤 한 번만 다시 시도한다. 이미 한 번 재시도했으면 평소 주기에 맡긴다 */
+function scheduleRetry() {
+  if (retryUsed || retryTimer) return;
+  retryUsed = true;
+  retryTimer = setTimeout(() => {
+    retryTimer = null;
+    if (active) refresh(true);
+    else retryDue = true; // 홈이 안 보이면 호출하지 않고, 다시 보일 때 시도
+  }, WEATHER_RETRY_ONCE_MS);
 }
 
 function paint(wx, at) {
@@ -178,13 +194,15 @@ function paint(wx, at) {
 async function load() {
   const at = await point();
   pendingAt = at;
-  if (!at) return hide();
   try {
+    if (!at) throw new Error("no point"); // 좌표조차 없음 (cities.json도 못 받음)
     const wx = await fetchWeather(at);
     lastOkAt = Date.now();
+    retryUsed = false;
     paint(wx, at);
   } catch {
-    hide(); // 에러 문구 없이 영역만 숨긴다
+    showFailed(); // 숨기지 않고 회색 실패 문구
+    scheduleRetry();
   }
 }
 
@@ -239,6 +257,10 @@ export function setWeatherActive(on) {
   clearInterval(timer);
   timer = null;
   if (!on) return;
-  refresh();
+  // 숨겨진 동안 재시도 시각이 지났으면 지금 바로 (refresh()는 WEATHER_RETRY_MS 간격에 막히므로 force)
+  if (retryDue) {
+    retryDue = false;
+    refresh(true);
+  } else refresh();
   timer = setInterval(refresh, WEATHER_REFRESH_MS);
 }

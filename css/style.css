@@ -254,6 +254,7 @@ button.pause-note { cursor: pointer; }
 .wx-temp { font-size: 1.05rem; font-weight: 700; color: var(--text); }
 .wx-desc { color: var(--muted); }
 .wx-where { font-size: .85rem; }
+.wx-fail { color: var(--muted); font-size: .9rem; }
 .wx-tip {
   color: var(--wx-tip-fg);
   background: var(--wx-tip-bg);
