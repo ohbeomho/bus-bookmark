@@ -10,15 +10,15 @@
   --soon: #b3261e;
   --star: #b26a00;
   --danger: #b3261e;
-  /* 노선 유형별 색. trunk/branch/express/circular는 제주 실제 도색(간선 파랑·지선 초록·급행 빨강·
-     관광순환 노랑)과 맞춘 색이다. village·seat는 실제 도색이 아니라 구분용 근사/임의 배색이다
-     (마을버스는 실제 적+노랑+흰색 다색이라 단색으로 못 맞춤, 좌석버스는 제주에서 관측된 적 없음).
-     글자는 흰 배경 기준 대비 4.5:1 이상, 배경은 옅은 같은 계열 */
+  /* 노선 유형별 색. 나무위키 「제주특별자치도 시내버스」 운행 체계 표의 색 계열을 따른다:
+     급행·공항리무진 빨강, 간선 파랑, 지선·마을 청록, 관광지순환·자율주행·심야 노랑.
+     seat는 제주에 없는 유형이라 임의 배색. 글자는 옅은 배경 기준 대비 4.5:1 이상 */
   --rt-trunk-fg: #0b4fa8;   --rt-trunk-bg: #dbe9fb;   /* 간선 */
-  --rt-branch-fg: #16653a;  --rt-branch-bg: #d8f0e0;  /* 지선·외곽 */
+  --rt-branch-fg: #006b68;  --rt-branch-bg: #d4f5f4;  /* 지선 (청록) */
   --rt-express-fg: #b3261e; --rt-express-bg: #fbe0de; /* 급행·광역 */
   --rt-circular-fg: #7a6000; --rt-circular-bg: #fbf0c2; /* 관광순환 (노랑) */
-  --rt-village-fg: #8a4b00; --rt-village-bg: #fbe7cc; /* 마을 (근사 배색) */
+  --rt-village-fg: #006b68; --rt-village-bg: #d4f5f4; /* 마을 = 지선과 같은 청록 */
+  --cm-ontime-fg: #16653a;  --cm-ontime-bg: #d8f0e0;  /* 출근 체크인 무지각 (초록, 노선 색과 별개) */
   --rt-seat-fg: #0a5b67;    --rt-seat-bg: #d5eef2;    /* 좌석 (임의 배색) */
   --wx-tip-fg: #0b4fa8;     --wx-tip-bg: #dbe9fb;     /* 우산 안내 (F-WX1) */
   --radius: 14px;
@@ -39,10 +39,11 @@
     --danger: #ff8a80;
     /* 어두운 배경에서는 글자를 밝게, 배경은 어두운 같은 계열 (본문 배경 대비 은은하게) */
     --rt-trunk-fg: #a7c9ff;   --rt-trunk-bg: #1b3356;
-    --rt-branch-fg: #8fdba7;  --rt-branch-bg: #163a27;
+    --rt-branch-fg: #6fe3df;  --rt-branch-bg: #0f3a39;
     --rt-express-fg: #ff9e95; --rt-express-bg: #4a211e;
     --rt-circular-fg: #f8df78; --rt-circular-bg: #453c12;
-    --rt-village-fg: #f8c178; --rt-village-bg: #432f12;
+    --rt-village-fg: #6fe3df; --rt-village-bg: #0f3a39;
+    --cm-ontime-fg: #8fdba7;  --cm-ontime-bg: #163a27;
     --rt-seat-fg: #8ad7e2;    --rt-seat-bg: #103a41;
     --wx-tip-fg: #a7c9ff;     --wx-tip-bg: #1b3356;
   }
@@ -297,7 +298,7 @@ button.pause-note { cursor: pointer; }
   background: var(--line);
   color: var(--muted);
 }
-.cm-dot[data-result="ontime"] { background: var(--rt-branch-bg); color: var(--rt-branch-fg); }
+.cm-dot[data-result="ontime"] { background: var(--cm-ontime-bg); color: var(--cm-ontime-fg); }
 .cm-dot[data-result="late"] { background: var(--rt-express-bg); color: var(--rt-express-fg); }
 .cm-mark { line-height: 1; }
 
