@@ -2,7 +2,7 @@
 
 제주 버스 전용. 자주 타는 버스 정류장과 노선만 즐겨찾기해 두고, 도착 정보를 바로 보는 모바일 웹앱(PWA)입니다.
 
-- 운영 주소: https://jeju-bus-bookmark.vercel.app (Vercel. 프로젝트 이름 변경 전 주소 `https://bus-bookmark.vercel.app`도 전환 기간 동안 Worker에서 허용)
+- 운영 주소: https://jeju-bus-bookmark.vercel.app (Vercel. 옛 주소 `bus-bookmark.vercel.app`은 더 이상 쓰지 않음)
 - 기준 문서: [`버스즐겨찾기_PWA_PRD.md`](버스즐겨찾기_PWA_PRD.md) · 개발 규칙: [`CLAUDE.md`](CLAUDE.md) · API 검증 결과: [`docs/phase0-findings.md`](docs/phase0-findings.md)
 
 ## 구조
