@@ -35,5 +35,5 @@ export const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 export const WEATHER_REFRESH_MS = 30 * 60 * 1000; // 홈이 계속 보여도 이 간격으로만 다시 받는다
 export const WEATHER_RETRY_MS = 5 * 60 * 1000; // 실패한 뒤 다시 시도할 때까지 (조용히 숨긴 채 기다린다)
 export const WEATHER_TIMEOUT_MS = 6000; // 1회 요청 타임아웃 (초과하면 영역을 숨긴다)
-export const WEATHER_RAIN_PROB = 60; // 오늘 강수확률(%)이 이 이상이면 약한 우산 안내
+export const WEATHER_RAIN_PROB = 60; // 오늘 남은 시간의 시간별 강수확률 최댓값(%)이 이 이상이면 약한 우산 안내
 export const FALLBACK_CITY_CODE = 39; // 위치를 모를 때 쓰는 기본 좌표의 도시 (제주, data/cities.json의 center)

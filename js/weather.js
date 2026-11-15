@@ -85,13 +85,36 @@ async function point() {
 
 const round2 = (n) => Math.round(n * 100) / 100;
 
+/**
+ * 오늘 남은 시간의 시간별 강수확률 최댓값(%). 모르면 null.
+ * "지금"은 응답의 current.time(요청한 Asia/Seoul 기준, "YYYY-MM-DDTHH:MM")을 쓴다 — 기기 시간대와 무관.
+ * 지금 시각이 속한 시간대(HH:00)부터 그날 23:00까지만 본다 (forecast_days=1이라 응답이 오늘치뿐).
+ * 이미 지난 시간대 예보는 빼서, 새벽 비 예보 때문에 저녁에 "비 올 수도"가 뜨지 않게 한다.
+ */
+function remainingMaxProb(j) {
+  const times = j?.hourly?.time;
+  const probs = j?.hourly?.precipitation_probability;
+  const now = String(j?.current?.time || "");
+  if (!Array.isArray(times) || !Array.isArray(probs) || now.length < 13) return null;
+  const from = now.slice(0, 13) + ":00"; // "YYYY-MM-DDTHH:00"
+  const day = now.slice(0, 10);
+  let max = null;
+  for (let i = 0; i < times.length; i++) {
+    const t = String(times[i]);
+    const p = Number(probs[i]);
+    if (t.slice(0, 10) !== day || t < from || probs[i] == null || !Number.isFinite(p)) continue;
+    if (max == null || p > max) max = p;
+  }
+  return max;
+}
+
 /** Open-Meteo 1회 호출. 실패·타임아웃이면 throw (호출한 쪽이 영역을 숨긴다) */
 async function fetchWeather({ lat, lng }) {
   const q = new URLSearchParams({
     latitude: String(round2(lat)),
     longitude: String(round2(lng)),
     current: "temperature_2m,precipitation,weather_code",
-    daily: "precipitation_probability_max",
+    hourly: "precipitation_probability",
     timezone: "Asia/Seoul",
     forecast_days: "1",
   });
@@ -105,7 +128,7 @@ async function fetchWeather({ lat, lng }) {
     const temp = Number(cur?.temperature_2m);
     const code = Number(cur?.weather_code);
     if (!Number.isFinite(temp) || !Number.isFinite(code)) throw new Error("bad payload");
-    const prob = Number(j?.daily?.precipitation_probability_max?.[0]);
+    const prob = remainingMaxProb(j);
     return {
       temp,
       code,
@@ -130,7 +153,7 @@ function paint(wx, at) {
   if (!el) return;
   const { icon, text } = describe(wx.code);
   const wet = wx.precip > 0 || isWetCode(wx.code);
-  // 지금 오는 중이면 강하게, 아니면 오늘 강수확률이 높을 때만 약하게 안내한다
+  // 지금 오는 중이면 강하게, 아니면 오늘 남은 시간의 강수확률이 높을 때만 약하게 안내한다
   const tip = wet
     ? "☂️ 우산을 챙기세요"
     : wx.prob != null && wx.prob >= WEATHER_RAIN_PROB
