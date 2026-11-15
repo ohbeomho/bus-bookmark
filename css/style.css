@@ -53,8 +53,11 @@
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   margin: 0;
-  height: 100vh;
-  height: 100dvh;
+  /* 100vh/100dvh 대신 창에 고정: 설치형 PWA(특히 iOS)에서 업데이트 새로고침(location.reload) 직후
+     dvh가 실제 화면보다 크게 계산돼 아래 탭바가 화면 밖으로 밀려나는 문제가 있었다.
+     스크롤은 main 안에서만 하므로 body를 고정해도 된다 */
+  position: fixed;
+  inset: 0;
   display: flex;
   flex-direction: column;
   background: var(--bg);
