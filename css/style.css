@@ -257,6 +257,44 @@ button.pause-note { cursor: pointer; }
   font-weight: 600;
 }
 
+/* ---------- 출근 무지각 체크인 (F-CM1~F-CM4) ----------
+   날씨 바로 아래. 도착 정보를 밀어내지 않게 조용히, 글자를 키워도 줄바꿈으로 버틴다.
+   동그라미 색은 노선 유형 색 변수를 그대로 빌려 쓴다(라이트·다크 모두 대비 확보됨). */
+.commute {
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+  margin: .25rem 0 0;
+  padding: .5rem .6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.cm-head { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .6rem; }
+.cm-streak { margin: 0; font-weight: 700; }
+.cm-target, .cm-done { margin: 0; color: var(--muted); font-size: .9rem; }
+.cm-done { color: var(--text); }
+.cm-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.cm-actions .btn { flex: 1 1 8rem; }
+
+/* 최근 기록 동그라미: 색 + 기호(✓ ✕ –) + 숨김 텍스트("11월 15일 무지각")로 세 겹 전달 */
+.cm-dots { display: flex; gap: .3rem; margin: 0; padding: 0; list-style: none; }
+.cm-dot {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .8rem;
+  font-weight: 700;
+  background: var(--line);
+  color: var(--muted);
+}
+.cm-dot[data-result="ontime"] { background: var(--rt-branch-bg); color: var(--rt-branch-fg); }
+.cm-dot[data-result="late"] { background: var(--rt-express-bg); color: var(--rt-express-fg); }
+.cm-mark { line-height: 1; }
+
 /* ---------- 정류장 카드 ---------- */
 .stop-list { display: flex; flex-direction: column; gap: .75rem; padding-top: .25rem; }
 .card {

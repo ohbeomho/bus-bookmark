@@ -40,6 +40,9 @@
       <div id="ptr" class="ptr" aria-hidden="true">당겨서 새로고침</div>
       <!-- 날씨 (F-WX1). 내용은 js/weather.js가 채우고, 못 받으면 영역을 그냥 숨긴다 -->
       <div id="weather" class="weather" role="group" aria-label="현재 날씨" hidden></div>
+      <!-- 출근 무지각 체크인 (F-CM1~F-CM4). js/ui/commute.js가 채운다.
+           목표 시간을 설정하기 전에는 통째로 숨긴다 -->
+      <div id="commute" class="commute" role="group" aria-label="출근 무지각 체크인" hidden></div>
       <div id="stop-list" class="stop-list"></div>
       <div class="dock">
         <div class="dock-notes" role="status" aria-live="polite">
@@ -91,6 +94,17 @@
           <button id="group-add" class="btn primary" type="button">그룹 만들기</button>
           <span id="group-count" class="help"></span>
         </div>
+      </section>
+
+      <!-- 출근 무지각 체크인 (F-CM1) -->
+      <section class="group" aria-labelledby="h-commute">
+        <h2 id="h-commute">출근 무지각 체크인</h2>
+        <p class="help">목표 시간을 정하면 홈 화면에 <strong>탑승 완료</strong> 버튼이 생겨요. 목표 시간까지 탑승하면 무지각, 넘으면 지각으로 그날 하루치만 기록돼요. 기록은 이 기기에만 저장되고 아무 데도 보내지 않아요.</p>
+        <label class="field" for="commute-target">출근 목표 시간
+          <input id="commute-target" type="time" step="60" autocomplete="off">
+        </label>
+        <p id="commute-note" class="help"></p>
+        <button id="commute-clear" class="btn" type="button" hidden>목표 시간 지우기</button>
       </section>
 
       <section id="install-group" class="group" aria-labelledby="h-install" hidden>

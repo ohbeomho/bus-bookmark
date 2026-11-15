@@ -15,6 +15,7 @@ import * as geo from "../geo.js";
 import { fetchArrivals, lastRequestAt } from "../api.js";
 import { groupSelect } from "./groups.js";
 import { initWeather, setWeatherActive } from "../weather.js";
+import { initCommute, syncCommute } from "./commute.js";
 import {
   MIN_AUTO_REFRESH_SEC,
   STALE_AFTER_MS,
@@ -78,6 +79,9 @@ export function initHome(panel) {
   listEl = panel.querySelector("#stop-list");
   // F-WX1 날씨: 도착 정보와 별개 모듈·별개 타이머. 실패하면 스스로 영역을 숨긴다
   initWeather(panel.querySelector("#weather"));
+  // F-CM1~F-CM4 출근 무지각 체크인: 날씨 바로 아래. 네트워크 호출이 없고 저장소도 따로라
+  // 도착 정보 새로고침·타이머와 얽히지 않는다 (날짜가 바뀔 때만 tick에서 다시 그린다)
+  initCommute(panel.querySelector("#commute"));
   panel.querySelector("#refresh-btn").addEventListener("click", () => refreshAll(true));
   panel.querySelector("#idle-note").addEventListener("click", onUserInput);
   setupPull(document.getElementById("main"), panel.querySelector("#ptr"));
@@ -821,6 +825,7 @@ function statusLine(stop, st, stale) {
 function tick() {
   const now = Date.now();
   pollPosition(now);
+  syncCommute(); // 홈을 열어 둔 채 자정을 넘겼을 때만 다시 그린다 (날짜 문자열 비교)
   // 위치가 새로 생겼거나(권한 허용) 오래돼 못 쓰게 됐으면(GEO_STALE_MS 초과) 정렬·도보 안내를 다시 그린다
   const hasPos = !!geo.getPosition();
   if (hasPos !== hadPos) {
