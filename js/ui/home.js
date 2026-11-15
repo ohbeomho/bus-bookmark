@@ -768,17 +768,19 @@ const ROUTE_TYPE_RULES = [
 ];
 /**
  * 제주 노선 번호 → 색상 카테고리 (routeType 문자열로 못 가를 때만 쓰는 보조 분류).
- * 100번대=급행, 200·300·500번대=간선, 400·600·700번대=지선, 800번대=관광순환(810·820 확인됨).
- * 제주 전용 휴리스틱이라 숫자 자체가 아니라 `routetp`가 우선이다 — API가 유형을 주면 이 폴백은 안 쓰인다.
+ * 100번대=지선, 200·300·400번대=간선·급행 혼재, 800번대=관광순환 — 실제 Worker 호출로 확인된
+ * 값(2026-11-15, 제주시청 정류장 샘플): 100번대 지선버스, 200·400번대 간선버스, 300번대 급행버스.
+ * 500·600·700번대는 이 샘플에 없어 미확인(간선·지선으로 추정만). 제주 전용 휴리스틱이라
+ * 숫자 자체가 아니라 `routetp`가 우선이다 — API가 유형을 주면 이 폴백은 안 쓰인다.
  */
 function routeNoFallback(routeNo) {
   const n = parseInt(String(routeNo ?? "").replace(/\D/g, ""), 10);
   if (!Number.isFinite(n)) return "";
   const hundred = Math.floor(n / 100);
-  if (hundred === 1) return "express";
-  if (hundred === 2 || hundred === 3 || hundred === 5) return "trunk";
-  if (hundred === 4 || hundred === 6 || hundred === 7) return "branch";
-  if (hundred === 8) return "circular";
+  if (hundred === 3) return "express"; // 확인됨
+  if (hundred === 2 || hundred === 4 || hundred === 5) return "trunk"; // 2·4 확인됨, 5는 미확인 추정
+  if (hundred === 1 || hundred === 6 || hundred === 7) return "branch"; // 1 확인됨, 6·7은 미확인 추정
+  if (hundred === 8) return "circular"; // 810·820 확인됨
   return "";
 }
 
