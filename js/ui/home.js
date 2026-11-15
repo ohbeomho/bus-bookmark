@@ -762,17 +762,39 @@ const ROUTE_TYPE_RULES = [
   [/순환/, "circular"], // 노랑: 제주 관광순환버스(810·820) 실제 도색 ("마을"보다 먼저 본다)
   [/마을/, "village"], // 근사 배색 (주황) — 실제는 적색+노란색+흰색 다색
 ];
-export function routeTypeClass(routeType) {
-  const t = String(routeType || "").replace(/\s+/g, "");
-  if (!t) return "";
-  for (const [re, kind] of ROUTE_TYPE_RULES) if (re.test(t)) return kind;
+/**
+ * 제주 노선 번호 → 색상 카테고리 (routeType 문자열로 못 가를 때만 쓰는 보조 분류).
+ * 100번대=급행, 200·300·500번대=간선, 400·600·700번대=지선, 800번대=관광순환(810·820 확인됨).
+ * 제주 전용 휴리스틱이라 숫자 자체가 아니라 `routetp`가 우선이다 — API가 유형을 주면 이 폴백은 안 쓰인다.
+ */
+function routeNoFallback(routeNo) {
+  const n = parseInt(String(routeNo ?? "").replace(/\D/g, ""), 10);
+  if (!Number.isFinite(n)) return "";
+  const hundred = Math.floor(n / 100);
+  if (hundred === 1) return "express";
+  if (hundred === 2 || hundred === 3 || hundred === 5) return "trunk";
+  if (hundred === 4 || hundred === 6 || hundred === 7) return "branch";
+  if (hundred === 8) return "circular";
   return "";
+}
+
+export function routeTypeClass(routeType, routeNo) {
+  const t = String(routeType || "").replace(/\s+/g, "");
+  if (t) {
+    for (const [re, kind] of ROUTE_TYPE_RULES) if (re.test(t)) return kind;
+  }
+  return routeNoFallback(routeNo);
 }
 
 /** 노선 번호 칩 (유형별 색). 홈 카드와 지도 바텀시트가 같이 쓴다 */
 export function routeNoChip(route) {
   const no = route.routeNo || "?";
-  return h("span", { class: "route-no", "data-rtype": routeTypeClass(route.routeType) || null }, no, h("span", { class: "sr-only" }, "번"));
+  return h(
+    "span",
+    { class: "route-no", "data-rtype": routeTypeClass(route.routeType, route.routeNo) || null },
+    no,
+    h("span", { class: "sr-only" }, "번")
+  );
 }
 
 const ERROR_TEXT = {
