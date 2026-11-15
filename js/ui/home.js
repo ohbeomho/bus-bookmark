@@ -736,7 +736,10 @@ export function routeLabels(routes) {
     const group = [...groupMap.values()];
     if (group.length < 2) continue;
     const byType = new Map();
-    for (const r of group) byType.set(r.routeType || "", [...(byType.get(r.routeType || "") || []), r.routeId]);
+    for (const r of group) {
+      const type = routeTypeText(r);
+      byType.set(type, [...(byType.get(type) || []), r.routeId]);
+    }
     for (const [type, ids] of byType) {
       const n = ids.length > 1 ? suffixLen(ids) : 0;
       for (const id of ids) {
@@ -782,6 +785,17 @@ function routeHundred(routeNo) {
   if (!/^\d+$/.test(s)) return null; // "급행1" 같은 문자열 번호는 번호대 분류를 하지 않는다
   const n = Number(s);
   return n >= 100 ? Math.floor(n / 100) : null;
+}
+
+const RULE_TEXT = { express: "급행", trunk: "간선", branch: "지선" };
+
+/**
+ * 화면에 쓰는 노선 유형 글자. 지정 번호대(JEJU_NO_RULES)는 번호 기준 유형명을 써서 칩 색과 맞추고,
+ * 그 밖의 노선은 API routetp 문구 그대로 (v0.6, 사용자 지정)
+ */
+export function routeTypeText(route) {
+  const kind = JEJU_NO_RULES[routeHundred(route?.routeNo)];
+  return kind ? RULE_TEXT[kind] : String(route?.routeType || "");
 }
 
 export function routeTypeClass(routeType, routeNo) {
