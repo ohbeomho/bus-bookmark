@@ -10,7 +10,8 @@
   },
   "vars": {
     // 쉼표 구분. 운영 주소는 Vercel 프로덕션 도메인만 (Preview 주소는 허용하지 않음). localhost는 개발용
-    "ALLOWED_ORIGINS": "https://bus-bookmark.vercel.app,http://localhost:5500"
+    // bus-bookmark.vercel.app은 프로젝트 이름 변경(jeju-bus-bookmark) 전 주소 — 전환이 끝나면 지운다
+    "ALLOWED_ORIGINS": "https://jeju-bus-bookmark.vercel.app,https://bus-bookmark.vercel.app,http://localhost:5500"
   },
   "ratelimits": [
     {

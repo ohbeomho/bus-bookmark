@@ -1,8 +1,8 @@
-# bus-bookmark
+# jeju-bus-bookmark
 
-자주 타는 버스 정류장과 노선만 즐겨찾기해 두고, 도착 정보를 바로 보는 모바일 웹앱(PWA)입니다.
+제주 버스 전용. 자주 타는 버스 정류장과 노선만 즐겨찾기해 두고, 도착 정보를 바로 보는 모바일 웹앱(PWA)입니다.
 
-- 운영 주소: https://bus-bookmark.vercel.app (Vercel, 연결 예정)
+- 운영 주소: https://jeju-bus-bookmark.vercel.app (Vercel. 프로젝트 이름 변경 전 주소 `https://bus-bookmark.vercel.app`도 전환 기간 동안 Worker에서 허용)
 - 기준 문서: [`버스즐겨찾기_PWA_PRD.md`](버스즐겨찾기_PWA_PRD.md) · 개발 규칙: [`CLAUDE.md`](CLAUDE.md) · API 검증 결과: [`docs/phase0-findings.md`](docs/phase0-findings.md)
 
 ## 구조
@@ -73,7 +73,7 @@ npx wrangler deploy
 
 - `.vercelignore`가 원본 데이터·스크립트·Worker·문서를 배포에서 뺍니다.
 - `vercel.json`이 CSP와 캐시 헤더를 설정합니다. **외부 리소스(지도 CDN, 지도 타일 등)를 추가하면 CSP도 함께 고쳐야** 배포본에서 막히지 않습니다.
-- 운영 주소가 `https://bus-bookmark.vercel.app`가 아니게 되면 Worker의 `ALLOWED_ORIGINS`를 바꾸고 다시 배포하세요. Preview 배포 주소는 허용하지 않으므로 Preview에서는 도착 정보가 나오지 않습니다.
+- 운영 주소가 `https://jeju-bus-bookmark.vercel.app`가 아니게 되면 Worker의 `ALLOWED_ORIGINS`를 바꾸고 다시 배포하세요. Preview 배포 주소는 허용하지 않으므로 Preview에서는 도착 정보가 나오지 않습니다.
 
 ## 데이터 출처
 

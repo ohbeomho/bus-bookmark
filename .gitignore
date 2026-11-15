@@ -148,7 +148,7 @@ vite.config.ts.timestamp-*
 # Turbo Repo
 .turbo
 
-# --- bus-bookmark ---
+# --- jeju-bus-bookmark ---
 # Worker 로컬 Secret (서비스키, 절대 커밋 금지)
 worker/.dev.vars
 .wrangler/
