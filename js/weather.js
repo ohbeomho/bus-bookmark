@@ -129,12 +129,13 @@ function paint(wx, at) {
     : wx.prob != null && wx.prob >= WEATHER_RAIN_PROB
       ? "☂️ 오늘 비 올 수도 있어요"
       : null;
+  const extras = at.fallback ? [h("span", { class: "wx-where" }, "제주 기준")] : [];
   el.replaceChildren(
     h("span", { class: "wx-icon", "aria-hidden": "true" }, icon),
     h("span", { class: "wx-temp" }, `${Math.round(wx.temp)}°C`),
     h("span", { class: "wx-desc" }, text),
     tip && h("span", { class: "wx-tip" }, tip),
-    at.fallback && h("span", { class: "wx-where" }, "제주 기준")
+    ...extras
   );
   el.hidden = false;
   shownAt = at;
