@@ -80,3 +80,4 @@ npx wrangler deploy
 - 국토교통부 (TAGO) 버스도착정보 — 공공데이터포털
 - 국토교통부 전국 버스정류장 위치정보 — 공공데이터포털
 - 지도: © OpenStreetMap contributors
+- 날씨: [Open-Meteo](https://open-meteo.com/) (키 불필요, Worker 미경유)
