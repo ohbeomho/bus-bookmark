@@ -80,6 +80,17 @@
         <p class="help">앱 화면이 보일 때만 새로고침해요. 모든 사용자가 하루 호출 한도를 함께 쓰므로 간격을 길게 할수록 좋아요.</p>
       </fieldset>
 
+      <!-- 즐겨찾기 그룹 (F-G1) -->
+      <section class="group" aria-labelledby="h-groups">
+        <h2 id="h-groups">즐겨찾기 그룹</h2>
+        <p class="help">출근·퇴근처럼 묶어 두면, 같은 그룹에서 <strong>지금 가장 빨리 탈 수 있는 노선</strong>을 홈 화면에 크게 보여 줘요. 노선마다 그룹은 홈 화면이나 지도 정류장 화면에서 고를 수 있어요.</p>
+        <ul id="group-list" class="plain group-list"></ul>
+        <div class="row">
+          <button id="group-add" class="btn primary" type="button">그룹 만들기</button>
+          <span id="group-count" class="help"></span>
+        </div>
+      </section>
+
       <section id="install-group" class="group" aria-labelledby="h-install" hidden>
         <h2 id="h-install">앱 설치</h2>
         <p id="install-help">홈 화면에 설치하면 앱처럼 바로 열려요.</p>
@@ -122,6 +133,7 @@
         <button class="btn" value="up">위로 이동</button>
         <button class="btn" value="down">아래로 이동</button>
       </div>
+      <p id="stop-menu-order-note" class="help" hidden>현재 위치에서 가까운 순으로 정렬 중이라 순서를 바꿀 수 없어요.</p>
       <button class="btn danger" value="delete">즐겨찾기에서 삭제</button>
       <button class="btn" value="cancel">닫기</button>
     </form>

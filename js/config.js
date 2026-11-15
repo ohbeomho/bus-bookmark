@@ -16,3 +16,15 @@ export const STALE_AFTER_MS = 3 * 60 * 1000; // 이보다 오래된 도착 정�
 // 저장 데이터 상한 (PRD 8.1)
 export const MAX_STOPS = 20; // 즐겨찾기 정류장 수
 export const MAX_ROUTES = 100; // 정류장당 즐겨찾기 노선 수, knownRoutes 수
+export const MAX_GROUPS = 20; // 즐겨찾기 그룹 수 (F-G1)
+
+// 도보 소요시간 자동 추정 (F-W1). 저장하지 않고 렌더링마다 현재 위치로 다시 계산한다
+export const WALK_SPEED_M_PER_MIN = 67; // 평균 도보 속도 (시속 약 4km)
+export const WALK_DETOUR_FACTOR = 1.3; // 직선거리 → 실제 걷는 거리 보정
+export const WALK_MAX_M = 3000; // 이보다 멀면 "걸어가는 정류장"으로 보지 않고 안내를 생략한다
+export const WALK_SAFETY_MIN = 2; // 그룹 최속(F-G2)을 고를 때 이만큼 여유가 있어야 "넉넉히 탈 수 있다"고 본다
+export const GEO_TIMEOUT_MS = 8000; // 위치 1회 요청 타임아웃 (실패하면 조용히 폴백)
+export const GEO_FRESH_MS = 2 * 60 * 1000; // 이보다 오래된 위치는 다시 요청 (홈이 보이는 동안 주기적으로)
+export const GEO_STALE_MS = 5 * 60 * 1000; // 이보다 오래된 위치로는 거리·도보 안내를 하지 않는다 (움직였을 수 있음)
+export const GEO_RETRY_MS = 5 * 60 * 1000; // 위치를 못 받은 뒤 다시 시도할 때까지
+export const GEO_MAX_FAILS = 3; // 연속 실패가 이만큼이면 이 세션에서는 자동 요청을 멈춘다

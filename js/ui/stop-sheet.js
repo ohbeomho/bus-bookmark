@@ -6,6 +6,7 @@ import { fetchArrivals, lastRequestAt } from "../api.js";
 import { MIN_GAP_MS, MIN_AUTO_REFRESH_SEC, MAX_ROUTES } from "../config.js";
 import { h, toast, fmtClock } from "./dom.js";
 import { routeLabels, renderEta, groupByRoute, nextEta, routeNoChip } from "./home.js";
+import { groupSelect } from "./groups.js";
 
 const CACHE_MAX = 30;
 const cache = new Map(); // key → 마지막 성공 결과 {items, nodeName, fetchedAt}
@@ -181,7 +182,11 @@ function render() {
   const list = h(
     "ul",
     { class: "routes" + (stale ? " stale" : ""), "aria-label": "지나는 노선" },
-    routes.map((x) => routeRow(x, byId.get(x.routeId), labels.get(x.routeId), isFav && saved.routes.some((f) => f.routeId === x.routeId)))
+    routes.map((x) => {
+      // 그룹은 저장된 즐겨찾기 노선에만 붙는다 (도착 정보 응답에는 groupId가 없다)
+      const savedRoute = saved?.routes.find((f) => f.routeId === x.routeId);
+      return routeRow(savedRoute ? { ...x, groupId: savedRoute.groupId } : x, byId.get(x.routeId), labels.get(x.routeId), !!savedRoute);
+    })
   );
 
   let note = null;
@@ -226,6 +231,8 @@ function routeRow(route, arr, label, fav) {
     arr?.prevStations != null && h("span", { class: "stations" }, `${arr.prevStations}정거장 전`),
     arr?.lowFloor && h("span", { class: "badge" }, "저상"),
     nextEta(arr, cur.result?.fetchedAt),
+    // F-G1: 즐겨찾기한 노선에만 그룹 선택
+    fav && groupSelect(cur.key, route, `g:${route.routeId}`),
     h(
       "button",
       {

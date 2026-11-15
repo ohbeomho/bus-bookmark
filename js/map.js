@@ -6,6 +6,7 @@
 // - 마커 탭은 지도 클릭 위치에서 가장 가까운 마커(HIT_PX 안)를 고른다: 터치 영역 44px 이상, 밀집 지역에서도 정확
 import * as tiles from "./tiles.js";
 import * as store from "./store.js";
+import * as geo from "./geo.js";
 import { h, toast } from "./ui/dom.js";
 import { initStopSheet, openStopSheet } from "./ui/stop-sheet.js";
 import { initSearch, showNearby, closeResults } from "./ui/search.js";
@@ -185,6 +186,7 @@ function requestPosition(onLate) {
 
 function setMyPos(pos) {
   myPos = pos;
+  geo.setPosition(pos); // 홈의 거리순 정렬·도보 추정과 같은 위치 값을 쓴다 (위치 요청 중복 방지)
   if (!map) return;
   const ll = [pos.lat, pos.lng];
   if (myMarker) myMarker.setLatLng(ll);

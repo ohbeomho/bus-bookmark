@@ -1,11 +1,19 @@
-// 즐겨찾기 홈 (PRD 5.1: F-H1, F-H2, F-H3, F-H4, F-H5, F-H6, F-H9)
+// 즐겨찾기 홈 (PRD 5.1: F-H1~F-H9, F-W1, F-G2)
+// 신규(4.6):
+//  - F-H8 거리순 정렬: 현재 위치를 알면 가까운 정류장부터. 위치 거부·실패면 저장된 order 순서로 조용히 폴백
+//  - F-W1 도보 소요시간: 현재 위치↔정류장 좌표로 매번 자동 추정(저장하지 않음). 추정값으로
+//    "도착예정 − 도보" 출발 안내를 덧붙인다. 위치를 모르면 안내 자체를 생략(기존 화면과 같음)
+//  - F-G2 그룹 최속: 즐겨찾기 전체를 가로질러 그룹마다 "지금 탈 수 있는 가장 빠른 노선" 하나를 크게 표시
+// 위치는 브라우저 Geolocation API라 TAGO/Worker 호출 한도와 무관하다 (도착 정보 호출이 늘지 않는다)
 // 호출 절약 (PRD 4.5): 화면이 보일 때만 자동 새로고침, 최소 30초, 접힌 카드는 호출 안 함,
 // 새로고침 사이에는 arrtime 기준 1초 카운트다운만 한다. 추가로
 //  - 사용자 입력이 IDLE_PAUSE_MS 동안 없으면 자동 새로고침 일시정지 (방치된 탭)
 //  - 연속 실패한 정류장은 FAIL_BACKOFF_SEC 간격으로 늦춘다 (자동 새로고침만)
 //  - 하루 한도 초과(quota) 응답을 받으면 QUOTA_PAUSE_MS 동안 자동 새로고침 정지
 import * as store from "../store.js";
+import * as geo from "../geo.js";
 import { fetchArrivals, lastRequestAt } from "../api.js";
+import { groupSelect } from "./groups.js";
 import {
   MIN_AUTO_REFRESH_SEC,
   STALE_AFTER_MS,
@@ -14,6 +22,8 @@ import {
   IDLE_PAUSE_MS,
   QUOTA_PAUSE_MS,
   MAX_ROUTES,
+  GEO_FRESH_MS,
+  WALK_SAFETY_MIN,
 } from "../config.js";
 import { h, toast, fmtClock } from "./dom.js";
 
@@ -39,6 +49,9 @@ let prevCollapsed = new Map();
 let lastInputAt = Date.now(); // 마지막 사용자 입력 시각
 let idlePaused = false; // 입력이 없어 자동 새로고침을 멈춘 상태
 let quotaUntil = 0; // 이 시각까지 자동 새로고침 정지 (하루 한도 초과)
+let lastBest = new Map(); // F-G2: groupId → "stopKey|routeId" (마지막 렌더링 때 고른 그룹별 최속 노선)
+let lastGeoPoll = 0; // 마지막 위치 재요청 시각 (홈이 보이는 동안 GEO_FRESH_MS 간격)
+let hadPos = false; // 직전 tick에서 쓸 수 있는 위치가 있었는지 (바뀌면 다시 그린다)
 
 const keyOf = store.stopKey;
 const stOf = (key) => {
@@ -69,7 +82,20 @@ export function initHome(panel) {
   const stops = store.getStops();
   prevCollapsed = new Map(stops.map((s) => [keyOf(s), s.collapsed]));
   store.subscribe(onStoreChange);
+  // 위치를 받으면 거리순 정렬·도보 안내를 다시 그린다 (지도 탭이 받은 위치도 같이 쓴다)
+  geo.subscribe(() => render());
   render();
+}
+
+/**
+ * 홈이 보이는 동안 위치를 GEO_FRESH_MS 간격으로 다시 받아 둔다 (F-W1: 사용자가 움직이면 값도 바뀌어야 한다).
+ * geo.ensurePosition()은 아직 신선하거나 거부·무시된 상태면 아무것도 하지 않는다.
+ * Geolocation은 브라우저 API라 도착 정보 호출 한도와 무관하다.
+ */
+function pollPosition(now) {
+  if (!store.getStops().length || now - lastGeoPoll < GEO_FRESH_MS) return;
+  lastGeoPoll = now;
+  geo.ensurePosition();
 }
 
 /** app.js가 탭 전환·visibilitychange 때 호출 */
@@ -85,6 +111,9 @@ export function setHomeActive(on) {
   // 탭으로 돌아오거나 화면을 다시 켠 것은 사용자가 있다는 뜻으로 본다
   lastInputAt = Date.now();
   idlePaused = false;
+  // F-H8·F-W1: 홈에서도 위치를 요청한다. 거부·실패해도 오류를 띄우지 않고 저장된 순서로 그대로 간다.
+  // (도착 정보 호출과 무관하므로 한도에 영향 없음. 결과가 오면 geo.subscribe가 다시 그린다)
+  pollPosition(Date.now());
   tick();
   tickTimer = setInterval(tick, 1000);
   // 다시 보이게 되면: 간격(끄기면 30초)과 실패 백오프가 지난 정류장만 즉시 호출.
@@ -304,9 +333,78 @@ function readOnlyGuard() {
 
 // ---------- 렌더링 ----------
 
+/**
+ * F-H8: 현재 위치를 알면 가까운 정류장부터. 좌표가 없는 정류장과 위치를 모를 때는
+ * 저장된 order 순서를 그대로 쓴다 (권한 거부·실패 시 조용한 폴백).
+ */
+function sortStops(stops) {
+  const pos = geo.getPosition();
+  if (!pos) return stops;
+  return stops
+    .map((s) => ({ s, d: geo.distanceTo(s, pos) ?? Infinity }))
+    .sort((a, b) => a.d - b.d || a.s.order - b.s.order)
+    .map((x) => x.s);
+}
+
+/**
+ * F-G2: 즐겨찾기 전체(여러 정류장)를 가로질러 그룹마다 "지금 탈 수 있는 가장 빠른 노선" 하나를 고른다.
+ * 도보 시간(자동 추정)을 반영해 두 단계로 고른다:
+ *  1) 여유 = `도착예정 − 도보`. 음수면 걸어가는 사이에 떠나므로 후보에서 빼고, 여유가
+ *     WALK_SAFETY_MIN 이상인 "넉넉히 탈 수 있는" 후보를 먼저 본다 (tier 0).
+ *     덕분에 "도보 2분·버스 11분"(여유 9분)이 "도보 9분·버스 10분"(여유 1분)보다 앞선다.
+ *     넉넉한 후보가 하나도 없으면 아슬아슬한 후보(tier 1) 중에서 고른다.
+ *  2) 같은 tier 안에서는 도착예정이 빠른 쪽 — "가장 빨리 탈 수 있는 노선"(PRD 4.6)이다.
+ *     (여유만으로 비교하면 같은 정류장에서 30분 뒤 버스가 5분 뒤 버스를 이기는 뒤집힘이 생긴다)
+ * 도보 시간을 모르는 정류장(위치 권한 없음·너무 먼 곳)은 도착예정만으로 비교에 넣는다.
+ * 같은 값이면 "stopKey|routeId" 문자열 순으로 정해 목록 순서가 달라도 결과가 흔들리지 않게 한다.
+ * @returns Map(groupId → "stopKey|routeId")
+ */
+function computeBest(stops, now = Date.now()) {
+  const best = [];
+  for (const stop of stops) {
+    if (stop.collapsed) continue; // 접힌 카드는 도착 정보를 불러오지 않는다
+    const r = state.get(keyOf(stop))?.result;
+    if (!r) continue;
+    const walk = geo.walkMinutes(stop);
+    const { byId } = groupByRoute(r.items);
+    for (const route of stop.routes) {
+      if (!route.groupId) continue;
+      const arr = byId.get(route.routeId);
+      if (!arr || arr.arrTime == null) continue;
+      const min = etaMinutes(r.fetchedAt + arr.arrTime * 1000, now);
+      if (walk != null && min < walk) continue; // 걸어가면 이미 놓쳤을 버스
+      // tier 0 = 넉넉히 탈 수 있음(도보를 모르면 여기), 1 = 아슬아슬함
+      const tier = walk != null && min - walk < WALK_SAFETY_MIN ? 1 : 0;
+      best.push({ groupId: route.groupId, tier, eta: min, id: `${keyOf(stop)}|${route.routeId}` });
+    }
+  }
+  return pickBestByGroup(best);
+}
+
+/**
+ * 그룹마다 후보 하나를 고른다: tier(넉넉함) → eta(도착예정) → id 순.
+ * id까지 보는 이유는 동점일 때 목록 순서에 따라 결과가 달라지지 않게 하기 위함이다
+ * (순서가 흔들리면 카드 하나만 다시 그려도 매번 전체 재렌더로 빠진다).
+ * @param entries [{groupId, tier, eta, id}]
+ * @returns Map(groupId → id)
+ */
+export function pickBestByGroup(entries) {
+  const best = new Map();
+  const better = (a, b) => a.tier - b.tier || a.eta - b.eta || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  for (const e of entries) {
+    const cur = best.get(e.groupId);
+    if (!cur || better(e, cur) < 0) best.set(e.groupId, e);
+  }
+  return new Map([...best].map(([g, v]) => [g, v.id]));
+}
+
+const sameBest = (a, b) => a.size === b.size && [...a].every(([k, v]) => b.get(k) === v);
+
 function render() {
   const focusKey = document.activeElement?.dataset?.fkey;
-  const stops = store.getStops();
+  const stops = sortStops(store.getStops());
+  lastBest = computeBest(stops);
+  hadPos = !!geo.getPosition();
   document.getElementById("refresh-btn").hidden = stops.length === 0;
   const ro =
     store.isReadOnly() &&
@@ -324,6 +422,13 @@ function renderCard(key) {
   const old = listEl.querySelector(`[data-key="${CSS.escape(key)}"]`);
   const stop = store.getStop(key);
   if (!old || !stop) return;
+  // 그룹 선택 드롭다운을 쓰는 중이면 카드를 바꾸지 않는다: 모바일의 네이티브 선택 UI가 몇 초씩
+  // 열려 있는데 그사이 자동 새로고침이 카드를 갈아끼우면 고르던 것이 취소된다. 다음 갱신 때 그려진다
+  const open = document.activeElement;
+  if (open?.classList?.contains("group-select") && old.contains(open)) return;
+  // 그룹 최속 노선(F-G2)이 다른 카드로 옮겨갔으면 목록 전체를 다시 그려야 강조가 한 곳에만 남는다.
+  // 비교는 render()와 같은(정렬된) 목록으로 해야 동점일 때 매번 전체 재렌더로 빠지지 않는다
+  if (!sameBest(computeBest(sortStops(store.getStops())), lastBest)) return render();
   const focusKey = document.activeElement?.dataset?.fkey;
   old.replaceWith(card(stop));
   restoreFocus(focusKey);
@@ -352,6 +457,9 @@ function card(stop) {
   const st = stOf(key);
   const title = stopTitle(stop);
   const bodyId = `body-${key.replace(/[^A-Za-z0-9]/g, "_")}`;
+  // F-W1·F-H8: 현재 위치 기준 거리·도보 추정. 위치를 모르면 둘 다 null → 아무것도 덧붙이지 않는다
+  const dist = geo.distanceTo(stop);
+  const walk = geo.walkMinutes(stop);
 
   const head = h(
     "div",
@@ -375,7 +483,16 @@ function card(stop) {
           { class: "card-title" },
           h("span", { class: "stop-name" }, title),
           // ARS는 없을 수 있다 (제주는 전부 빈 값)
-          stop.ars && h("span", { class: "ars" }, `(${stop.ars})`)
+          stop.ars && h("span", { class: "ars" }, `(${stop.ars})`),
+          // 거리·도보 추정 (위치를 알 때만). 저장하지 않고 그릴 때마다 다시 계산한 값이다
+          dist != null &&
+            h(
+              "span",
+              { class: "walk" },
+              h("span", { class: "sr-only" }, "현재 위치에서 "),
+              geo.fmtDistance(dist),
+              walk == null ? "" : walk === 0 ? " · 바로 앞" : ` · 도보 약 ${walk}분`
+            )
         )
       )
     ),
@@ -419,7 +536,11 @@ function card(stop) {
   ];
   // 같은 routeNo가 routeId만 다르게 여러 번 올 수 있다 (제주). 식별은 항상 routeId
   const labels = routeLabels([...favs, ...others]);
-  const row = (x, fav) => routeRow(key, x, byId.get(x.routeId), st, fav, labels.get(x.routeId));
+  const row = (x, fav) =>
+    routeRow(key, x, byId.get(x.routeId), st, fav, labels.get(x.routeId), {
+      walk, // 도보 추정 분 (없으면 null → 출발 안내 생략)
+      best: fav && x.groupId && lastBest.get(x.groupId) === `${key}|${x.routeId}`,
+    });
 
   const body = h("div", { class: "card-body" + (stale ? " stale" : ""), id: bodyId });
 
@@ -450,29 +571,38 @@ function card(stop) {
   return art;
 }
 
-function routeRow(key, route, arr, st, fav, label) {
+function routeRow(key, route, arr, st, fav, label, opts = {}) {
   const no = route.routeNo || "?";
   const name = label ? `${no}번 ${label}` : `${no}번`;
+  const due = arr && arr.arrTime != null && st.result ? st.result.fetchedAt + arr.arrTime * 1000 : null;
   let eta;
-  if (arr && arr.arrTime != null) {
-    eta = h("span", { class: "eta", "data-due": st.result.fetchedAt + arr.arrTime * 1000 });
+  if (due != null) {
+    eta = h("span", { class: "eta", "data-due": due });
     renderEta(eta, Date.now());
   } else {
     eta = h("span", { class: "eta none" }, st.result ? "도착 정보 없음" : st.loading ? "불러오는 중" : "—");
   }
+  const group = fav && route.groupId ? store.getGroup(route.groupId) : null;
   return h(
     "li",
-    { class: "route" + (fav ? " fav" : "") },
+    { class: "route" + (fav ? " fav" : "") + (opts.best ? " group-top" : "") },
     h(
       "span",
       { class: "route-id" },
       routeNoChip(route),
-      label && h("span", { class: "route-tp" }, label)
+      label && h("span", { class: "route-tp" }, label),
+      group && h("span", { class: "route-group" }, group.name)
     ),
     eta,
     arr?.prevStations != null && h("span", { class: "stations" }, `${arr.prevStations}정거장 전`),
     arr?.lowFloor && h("span", { class: "badge" }, "저상"),
     nextEta(arr, st.result?.fetchedAt),
+    // F-G2: 그룹에서 지금 가장 빨리 탈 수 있는 노선 (색만이 아니라 글자로도 알린다)
+    opts.best && h("span", { class: "group-badge" }, "가장 먼저 탈 수 있어요"),
+    // F-W1: 도보 추정을 반영한 출발 안내. 1초 카운트다운과 함께 tick()이 다시 쓴다
+    departNote(due, opts.walk),
+    // F-G1: 즐겨찾기한 노선에만 그룹 선택. 별표 토글 바로 왼쪽
+    fav && groupSelect(key, route, `g:${key}:${route.routeId}`),
     h(
       "button",
       {
@@ -495,14 +625,19 @@ function routeRow(key, route, arr, st, fav, label) {
   );
 }
 
+/** 도착 예정 시각(ms) → 화면에 쓰는 남은 분. 1분 미만은 0("곧 도착") */
+export function etaMinutes(due, now = Date.now()) {
+  const sec = (Number(due) - now) / 1000;
+  return sec < 60 ? 0 : Math.max(1, Math.round(sec / 60));
+}
+
 /**
  * 남은 시간 표시: 분 단위가 기본, 1분 미만은 "곧 도착" (F-H6).
  * 지역에 따라 arrtime이 분 단위로 반올림돼 오므로(제주: 전부 60의 배수) 초는 보여주지 않는다.
  * 1초마다 내부적으로 다시 계산하지만, 표시가 바뀔 때만 DOM을 고친다.
  */
 export function renderEta(el, now) {
-  const sec = (Number(el.dataset.due) - now) / 1000;
-  const min = sec < 60 ? 0 : Math.max(1, Math.round(sec / 60));
+  const min = etaMinutes(el.dataset.due, now);
   if (el.dataset.min === String(min)) return;
   el.dataset.min = String(min);
   el.classList.toggle("soon", min === 0);
@@ -530,6 +665,34 @@ export function groupByRoute(items = []) {
     } else if (!g.next && g.arrTime != null && i.arrTime != null) g.next = i;
   }
   return { byId, list };
+}
+
+/**
+ * F-W1 출발 안내: "도착예정(분) − 자동 추정 도보 시간".
+ * 도보 시간을 모르면(위치 권한 없음·너무 먼 정류장) null — 안내 자체를 생략한다.
+ */
+function departNote(due, walk) {
+  if (due == null || walk == null) return null;
+  const el = h("span", { class: "depart", "data-due": due, "data-walk": walk });
+  renderDepart(el, Date.now());
+  return el;
+}
+
+/** 출발 안내 문구 갱신. 표시가 바뀔 때만 DOM을 고친다 (1초마다 호출) */
+export function renderDepart(el, now) {
+  const walk = Number(el.dataset.walk);
+  const diff = etaMinutes(el.dataset.due, now) - walk;
+  if (el.dataset.diff === String(diff)) return;
+  el.dataset.diff = String(diff);
+  el.classList.toggle("warn", diff < 0);
+  const w = walk === 0 ? "정류장 바로 앞" : `도보 ${walk}분`;
+  const text =
+    diff < 0
+      ? `${w} · 이미 놓쳤을 수 있어요`
+      : diff === 0
+        ? `${w} · 지금 바로 출발하세요`
+        : `${w} · ${diff}분 후 출발하면 탈 수 있어요`;
+  el.replaceChildren(text);
 }
 
 /** 같은 노선 두 번째 버스 표시 (없으면 null). 정거장 수는 넣지 않는다 */
@@ -651,7 +814,15 @@ function statusLine(stop, st, stale) {
 
 function tick() {
   const now = Date.now();
+  pollPosition(now);
+  // 위치가 새로 생겼거나(권한 허용) 오래돼 못 쓰게 됐으면(GEO_STALE_MS 초과) 정렬·도보 안내를 다시 그린다
+  const hasPos = !!geo.getPosition();
+  if (hasPos !== hadPos) {
+    hadPos = hasPos;
+    return render(); // render가 모든 카드를 다시 그리므로 아래 갱신은 건너뛴다
+  }
   for (const el of listEl.querySelectorAll(".eta[data-due]")) renderEta(el, now);
+  for (const el of listEl.querySelectorAll(".depart[data-due]")) renderDepart(el, now);
   // 오래된 정보는 흐리게 (한 번만 다시 그림)
   for (const [key, st] of state) {
     if (st.result && !st.staleShown && now - st.result.fetchedAt > STALE_AFTER_MS) renderCard(key);
@@ -683,9 +854,12 @@ function openMenu(key) {
   const form = dlg.querySelector("form");
   dlg.querySelector("#stop-menu-title").textContent = stop.name || stop.nodeId;
   form.alias.value = stop.alias;
+  // 거리순 정렬 중(위치를 아는 상태)에는 저장 순서를 바꿔도 화면이 그대로라 혼란스럽다 → 막고 안내한다
+  const byDistance = !!geo.getPosition();
   const idx = store.getStops().findIndex((s) => keyOf(s) === key);
-  form.querySelector('[value="up"]').disabled = idx <= 0;
-  form.querySelector('[value="down"]').disabled = idx >= store.getStops().length - 1;
+  form.querySelector('[value="up"]').disabled = byDistance || idx <= 0;
+  form.querySelector('[value="down"]').disabled = byDistance || idx >= store.getStops().length - 1;
+  dlg.querySelector("#stop-menu-order-note").hidden = !byDistance;
   dlg.onclose = () => {
     const v = dlg.returnValue;
     dlg.returnValue = "";

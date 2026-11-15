@@ -13,7 +13,7 @@
 //                                             SW가 또 캐시하면 index 버전이 바뀐 뒤에도 옛 타일이 섞일 수 있다
 //  - 도착 정보 (*.workers.dev/arrivals)     : 절대 캐시하지 않는다. 가로채지도 않는다 (네트워크 직행)
 
-const VERSION = "v6";
+const VERSION = "v7";
 const PREFIX = "bus-bookmark-";
 const SHELL_CACHE = `${PREFIX}shell-${VERSION}`;
 const DATA_CACHE = `${PREFIX}data-v1`; // cities.json (버전 독립. 항상 네트워크 우선이라 옛것이 남아도 폴백으로만 쓴다)
@@ -39,8 +39,10 @@ const SHELL = [
   "js/store.js",
   "js/api.js",
   "js/tiles.js",
+  "js/geo.js",
   "js/map.js",
   "js/ui/dom.js",
+  "js/ui/groups.js",
   "js/ui/home.js",
   "js/ui/settings.js",
   "js/ui/install.js",
